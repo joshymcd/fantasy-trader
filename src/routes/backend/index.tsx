@@ -1,17 +1,23 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { useState } from 'react'
-import { desc, eq } from 'drizzle-orm'
+import { useEffect, useState } from 'react'
+import { count, desc, eq } from 'drizzle-orm'
 
 import {
   getBackendSystemStats,
   getBackendTableOverview,
 } from '../../lib/backend/debug'
 import { db } from '../../db/index'
-import { leagues, seasons, teams } from '../../db/schema'
+import { instruments, leagues, seasons, teams } from '../../db/schema'
 import { populateCalendar } from '../../lib/game/calendar'
 import { getHoldingsAtDate, validateRoster } from '../../lib/game/holdings'
 import { ensurePricesForInstrumentUniverse } from '../../lib/game/market-data'
+import {
+  activateSeason,
+  createSeason,
+  listSeasons,
+  populateSeasonInstruments,
+} from '../../lib/game/season'
 import {
   calculateTeamDay,
   calculateTeamRange,
@@ -31,6 +37,16 @@ const parseIsoDate = (value: string) => {
 const getTables = createServerFn({ method: 'GET' }).handler(async () => {
   const tables = await getBackendTableOverview()
   const systemStats = await getBackendSystemStats()
+  const seasonRows = await listSeasons()
+  const instrumentCounts = await db
+    .select({ seasonId: instruments.seasonId, instrumentCount: count() })
+    .from(instruments)
+    .groupBy(instruments.seasonId)
+
+  const instrumentCountBySeason = new Map(
+    instrumentCounts.map((row) => [row.seasonId, Number(row.instrumentCount)]),
+  )
+
   const teamRows = await db
     .select({
       teamId: teams.id,
@@ -45,6 +61,10 @@ const getTables = createServerFn({ method: 'GET' }).handler(async () => {
   return {
     generatedAt: new Date().toISOString(),
     systemStats,
+    seasons: seasonRows.map((season) => ({
+      ...season,
+      instrumentCount: instrumentCountBySeason.get(season.id) ?? 0,
+    })),
     tables,
     teams: teamRows,
     totalRows: tables.reduce((sum, table) => sum + table.rowCount, 0),
@@ -71,6 +91,61 @@ const runSyncPrices = createServerFn({ method: 'POST' })
       targetDate: data.targetDate,
       success: true,
     }
+  })
+
+const runCreateSeason = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (payload: {
+      name: string
+      market: string
+      startDate: string
+      endDate: string
+      tradeDeadlineDate: string
+      budget: number
+    }) => payload,
+  )
+  .handler(async ({ data }) => {
+    if (!data.name.trim()) {
+      throw new Error('Season name is required')
+    }
+
+    const season = await createSeason({
+      name: data.name.trim(),
+      market: data.market.trim() || 'LSE',
+      startDate: parseIsoDate(data.startDate),
+      endDate: parseIsoDate(data.endDate),
+      tradeDeadlineDate: parseIsoDate(data.tradeDeadlineDate),
+      budget: data.budget,
+    })
+
+    return season
+  })
+
+const runPopulateSeasonInstruments = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (payload: { seasonId: string; symbolsCsv: string; symbolLimit: number }) =>
+      payload,
+  )
+  .handler(async ({ data }) => {
+    if (!data.seasonId) {
+      throw new Error('Season is required')
+    }
+
+    return populateSeasonInstruments({
+      seasonId: data.seasonId,
+      symbolsCsv: data.symbolsCsv,
+      symbolLimit: data.symbolLimit,
+    })
+  })
+
+const runActivateSeason = createServerFn({ method: 'POST' })
+  .inputValidator((payload: { seasonId: string }) => payload)
+  .handler(async ({ data }) => {
+    if (!data.seasonId) {
+      throw new Error('Season is required')
+    }
+
+    return activateSeason(data.seasonId)
   })
 
 const runCalculateDayScore = createServerFn({ method: 'POST' })
@@ -193,14 +268,30 @@ function BackendIndexPage() {
 
   const [calendarYear, setCalendarYear] = useState(String(currentYear))
   const [priceDate, setPriceDate] = useState(defaultTargetDate)
+  const [seasonName, setSeasonName] = useState('UK Season')
+  const [seasonMarket, setSeasonMarket] = useState('LSE')
+  const [seasonStartDate, setSeasonStartDate] = useState(defaultTargetDate)
+  const [seasonEndDate, setSeasonEndDate] = useState(defaultTargetDate)
+  const [seasonTradeDeadlineDate, setSeasonTradeDeadlineDate] =
+    useState(defaultTargetDate)
+  const [seasonBudget, setSeasonBudget] = useState('100')
+  const [seasonActionSeasonId, setSeasonActionSeasonId] = useState('')
+  const [seasonSymbolsCsv, setSeasonSymbolsCsv] = useState('')
+  const [seasonSymbolLimit, setSeasonSymbolLimit] = useState('200')
   const [calendarStatus, setCalendarStatus] = useState('')
   const [priceStatus, setPriceStatus] = useState('')
+  const [seasonCreateStatus, setSeasonCreateStatus] = useState('')
+  const [seasonPopulateStatus, setSeasonPopulateStatus] = useState('')
+  const [seasonActivateStatus, setSeasonActivateStatus] = useState('')
   const [scoreStatus, setScoreStatus] = useState('')
   const [rangeStatus, setRangeStatus] = useState('')
   const [invalidateStatus, setInvalidateStatus] = useState('')
   const [debugStatus, setDebugStatus] = useState('')
   const [isCalendarLoading, setIsCalendarLoading] = useState(false)
   const [isPriceLoading, setIsPriceLoading] = useState(false)
+  const [isSeasonCreateLoading, setIsSeasonCreateLoading] = useState(false)
+  const [isSeasonPopulateLoading, setIsSeasonPopulateLoading] = useState(false)
+  const [isSeasonActivateLoading, setIsSeasonActivateLoading] = useState(false)
   const [isScoreLoading, setIsScoreLoading] = useState(false)
   const [isRangeLoading, setIsRangeLoading] = useState(false)
   const [isInvalidateLoading, setIsInvalidateLoading] = useState(false)
@@ -210,7 +301,15 @@ function BackendIndexPage() {
 
   const tables = data.tables
   const teamOptions = data.teams
+  const seasonOptions = data.seasons
   const defaultTeamId = teamOptions[0]?.teamId ?? ''
+  const defaultSeasonId = seasonOptions[0]?.id ?? ''
+
+  useEffect(() => {
+    if (!seasonActionSeasonId && defaultSeasonId) {
+      setSeasonActionSeasonId(defaultSeasonId)
+    }
+  }, [seasonActionSeasonId, defaultSeasonId])
 
   const [selectedTeamId, setSelectedTeamId] = useState(defaultTeamId)
   const [scoreDate, setScoreDate] = useState(defaultTargetDate)
@@ -292,6 +391,117 @@ function BackendIndexPage() {
       )
     } finally {
       setIsPriceLoading(false)
+    }
+  }
+
+  const handleCreateSeason = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    const budget = Number.parseInt(seasonBudget, 10)
+    if (Number.isNaN(budget)) {
+      setSeasonCreateStatus('Create season error: budget must be a number')
+      return
+    }
+
+    setIsSeasonCreateLoading(true)
+    setSeasonCreateStatus('Running...')
+
+    try {
+      const result = await runCreateSeason({
+        data: {
+          name: seasonName,
+          market: seasonMarket,
+          startDate: seasonStartDate,
+          endDate: seasonEndDate,
+          tradeDeadlineDate: seasonTradeDeadlineDate,
+          budget,
+        },
+      })
+
+      setSeasonCreateStatus(
+        `Season created: ${result.name} (${result.id}) status ${result.status}`,
+      )
+      setSeasonActionSeasonId(result.id)
+      await router.invalidate()
+    } catch (error) {
+      setSeasonCreateStatus(
+        `Create season error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsSeasonCreateLoading(false)
+    }
+  }
+
+  const handlePopulateSeason = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    if (!seasonActionSeasonId) {
+      setSeasonPopulateStatus('Populate error: select a season first')
+      return
+    }
+
+    const symbolLimit = Number.parseInt(seasonSymbolLimit, 10)
+    if (Number.isNaN(symbolLimit)) {
+      setSeasonPopulateStatus('Populate error: symbol limit must be a number')
+      return
+    }
+
+    setIsSeasonPopulateLoading(true)
+    setSeasonPopulateStatus('Running...')
+
+    try {
+      const result = await runPopulateSeasonInstruments({
+        data: {
+          seasonId: seasonActionSeasonId,
+          symbolsCsv: seasonSymbolsCsv,
+          symbolLimit,
+        },
+      })
+
+      setSeasonPopulateStatus(
+        `Instruments populated: ${result.insertedInstruments} rows (requested ${result.requestedSymbols})`,
+      )
+      await router.invalidate()
+    } catch (error) {
+      setSeasonPopulateStatus(
+        `Populate error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsSeasonPopulateLoading(false)
+    }
+  }
+
+  const handleActivateSeason = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    if (!seasonActionSeasonId) {
+      setSeasonActivateStatus('Activate error: select a season first')
+      return
+    }
+
+    setIsSeasonActivateLoading(true)
+    setSeasonActivateStatus('Running...')
+
+    try {
+      const result = await runActivateSeason({
+        data: { seasonId: seasonActionSeasonId },
+      })
+      setSeasonActivateStatus(
+        `Season activated: ${result.id} status ${result.status}`,
+      )
+      await router.invalidate()
+    } catch (error) {
+      setSeasonActivateStatus(
+        `Activate error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsSeasonActivateLoading(false)
     }
   }
 
@@ -496,6 +706,186 @@ function BackendIndexPage() {
           </button>
         </form>
         <p>{priceStatus}</p>
+      </section>
+
+      <section>
+        <h3>Season tools</h3>
+
+        <h4>Create season</h4>
+        <form onSubmit={handleCreateSeason}>
+          <p>
+            <label>
+              Name{' '}
+              <input
+                type="text"
+                value={seasonName}
+                onChange={(event) => setSeasonName(event.target.value)}
+              />
+            </label>
+          </p>
+          <p>
+            <label>
+              Market{' '}
+              <input
+                type="text"
+                value={seasonMarket}
+                onChange={(event) => setSeasonMarket(event.target.value)}
+              />
+            </label>
+          </p>
+          <p>
+            <label>
+              Start date{' '}
+              <input
+                type="date"
+                value={seasonStartDate}
+                onChange={(event) => setSeasonStartDate(event.target.value)}
+              />
+            </label>{' '}
+            <label>
+              End date{' '}
+              <input
+                type="date"
+                value={seasonEndDate}
+                onChange={(event) => setSeasonEndDate(event.target.value)}
+              />
+            </label>{' '}
+            <label>
+              Trade deadline{' '}
+              <input
+                type="date"
+                value={seasonTradeDeadlineDate}
+                onChange={(event) =>
+                  setSeasonTradeDeadlineDate(event.target.value)
+                }
+              />
+            </label>
+          </p>
+          <p>
+            <label>
+              Budget{' '}
+              <input
+                type="number"
+                min={1}
+                value={seasonBudget}
+                onChange={(event) => setSeasonBudget(event.target.value)}
+              />
+            </label>
+          </p>
+          <button type="submit" disabled={isSeasonCreateLoading}>
+            {isSeasonCreateLoading ? 'Running...' : 'Create season'}
+          </button>
+          <p>{seasonCreateStatus}</p>
+        </form>
+
+        <h4>Populate and activate season</h4>
+        {seasonOptions.length === 0 ? (
+          <p>No seasons found. Create one first.</p>
+        ) : (
+          <>
+            <p>
+              <label>
+                Season{' '}
+                <select
+                  value={seasonActionSeasonId}
+                  onChange={(event) =>
+                    setSeasonActionSeasonId(event.target.value)
+                  }
+                >
+                  {seasonOptions.map((season) => (
+                    <option key={season.id} value={season.id}>
+                      {season.name} ({season.status}) instruments:{' '}
+                      {season.instrumentCount}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </p>
+
+            <form onSubmit={handlePopulateSeason}>
+              <p>
+                <label>
+                  Symbol limit{' '}
+                  <input
+                    type="number"
+                    min={5}
+                    max={500}
+                    value={seasonSymbolLimit}
+                    onChange={(event) =>
+                      setSeasonSymbolLimit(event.target.value)
+                    }
+                  />
+                </label>
+              </p>
+              <p>
+                <label>
+                  Symbols CSV (optional, defaults to built-in UK set){' '}
+                  <textarea
+                    value={seasonSymbolsCsv}
+                    onChange={(event) =>
+                      setSeasonSymbolsCsv(event.target.value)
+                    }
+                    rows={3}
+                    cols={80}
+                  />
+                </label>
+              </p>
+              <button type="submit" disabled={isSeasonPopulateLoading}>
+                {isSeasonPopulateLoading
+                  ? 'Running...'
+                  : 'Populate instruments'}
+              </button>
+              <p>{seasonPopulateStatus}</p>
+            </form>
+
+            <form onSubmit={handleActivateSeason}>
+              <button type="submit" disabled={isSeasonActivateLoading}>
+                {isSeasonActivateLoading ? 'Running...' : 'Activate season'}
+              </button>
+              <p>{seasonActivateStatus}</p>
+            </form>
+          </>
+        )}
+
+        <h4>Season summary</h4>
+        {seasonOptions.length === 0 ? (
+          <p>No seasons to display.</p>
+        ) : (
+          <table border={1} cellPadding={6} cellSpacing={0}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Market</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Trade Deadline</th>
+                <th>Budget</th>
+                <th>Instruments</th>
+              </tr>
+            </thead>
+            <tbody>
+              {seasonOptions.map((season) => (
+                <tr key={season.id}>
+                  <td>{season.name}</td>
+                  <td>{season.status}</td>
+                  <td>{season.market}</td>
+                  <td>
+                    {new Date(season.startDate).toISOString().slice(0, 10)}
+                  </td>
+                  <td>{new Date(season.endDate).toISOString().slice(0, 10)}</td>
+                  <td>
+                    {new Date(season.tradeDeadlineDate)
+                      .toISOString()
+                      .slice(0, 10)}
+                  </td>
+                  <td>{season.budget}</td>
+                  <td>{season.instrumentCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section>
