@@ -77,7 +77,7 @@ const getLeagueOverview = createServerFn({ method: 'GET' })
     }
   })
 
-export const Route = createFileRoute('/leagues/$leagueId')({
+export const Route = createFileRoute('/_app/leagues/$leagueId')({
   loader: ({ params }) =>
     getLeagueOverview({ data: { leagueId: params.leagueId } }),
   component: LeagueOverviewPage,

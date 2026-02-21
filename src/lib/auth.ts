@@ -5,9 +5,6 @@ import { anonymous } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 export const auth = betterAuth({
-  emailAndPassword: {
-    enabled: true,
-  },
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
@@ -21,5 +18,10 @@ export const auth = betterAuth({
     level: 'debug',
     disabled: false,
   },
-  plugins: [tanstackStartCookies(), anonymous()],
+  plugins: [
+    anonymous({
+      emailDomainName: 'anonymous.fantasy-trader.local',
+    }),
+    tanstackStartCookies(),
+  ],
 })

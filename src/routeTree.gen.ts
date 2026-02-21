@@ -9,18 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BackendIndexRouteImport } from './routes/backend/index'
-import { Route as LeaguesLeagueIdRouteImport } from './routes/leagues/$leagueId'
-import { Route as BackendTableRouteImport } from './routes/backend/$table'
-import { Route as LeaguesLeagueIdStandingsRouteImport } from './routes/leagues/$leagueId/standings'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppBackendIndexRouteImport } from './routes/_app/backend/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as LeaguesLeagueIdTeamTeamIdRouteImport } from './routes/leagues/$leagueId/team/$teamId'
+import { Route as AppLeaguesLeagueIdRouteImport } from './routes/_app/leagues/$leagueId'
+import { Route as AppBackendTableRouteImport } from './routes/_app/backend/$table'
+import { Route as AppLeaguesLeagueIdStandingsRouteImport } from './routes/_app/leagues/$leagueId/standings'
+import { Route as AppLeaguesLeagueIdTeamTeamIdRouteImport } from './routes/_app/leagues/$leagueId/team/$teamId'
 
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -28,119 +34,137 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BackendIndexRoute = BackendIndexRouteImport.update({
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppBackendIndexRoute = AppBackendIndexRouteImport.update({
   id: '/backend/',
   path: '/backend/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRouteRoute,
 } as any)
-const LeaguesLeagueIdRoute = LeaguesLeagueIdRouteImport.update({
-  id: '/leagues/$leagueId',
-  path: '/leagues/$leagueId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BackendTableRoute = BackendTableRouteImport.update({
-  id: '/backend/$table',
-  path: '/backend/$table',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeaguesLeagueIdStandingsRoute =
-  LeaguesLeagueIdStandingsRouteImport.update({
-    id: '/standings',
-    path: '/standings',
-    getParentRoute: () => LeaguesLeagueIdRoute,
-  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LeaguesLeagueIdTeamTeamIdRoute =
-  LeaguesLeagueIdTeamTeamIdRouteImport.update({
+const AppLeaguesLeagueIdRoute = AppLeaguesLeagueIdRouteImport.update({
+  id: '/leagues/$leagueId',
+  path: '/leagues/$leagueId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppBackendTableRoute = AppBackendTableRouteImport.update({
+  id: '/backend/$table',
+  path: '/backend/$table',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppLeaguesLeagueIdStandingsRoute =
+  AppLeaguesLeagueIdStandingsRouteImport.update({
+    id: '/standings',
+    path: '/standings',
+    getParentRoute: () => AppLeaguesLeagueIdRoute,
+  } as any)
+const AppLeaguesLeagueIdTeamTeamIdRoute =
+  AppLeaguesLeagueIdTeamTeamIdRouteImport.update({
     id: '/team/$teamId',
     path: '/team/$teamId',
-    getParentRoute: () => LeaguesLeagueIdRoute,
+    getParentRoute: () => AppLeaguesLeagueIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/backend/$table': typeof BackendTableRoute
-  '/leagues/$leagueId': typeof LeaguesLeagueIdRouteWithChildren
-  '/backend/': typeof BackendIndexRoute
+  '/login': typeof LoginRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/backend/$table': typeof AppBackendTableRoute
+  '/leagues/$leagueId': typeof AppLeaguesLeagueIdRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/leagues/$leagueId/standings': typeof LeaguesLeagueIdStandingsRoute
-  '/leagues/$leagueId/team/$teamId': typeof LeaguesLeagueIdTeamTeamIdRoute
+  '/backend/': typeof AppBackendIndexRoute
+  '/leagues/$leagueId/standings': typeof AppLeaguesLeagueIdStandingsRoute
+  '/leagues/$leagueId/team/$teamId': typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/backend/$table': typeof BackendTableRoute
-  '/leagues/$leagueId': typeof LeaguesLeagueIdRouteWithChildren
-  '/backend': typeof BackendIndexRoute
+  '/login': typeof LoginRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/backend/$table': typeof AppBackendTableRoute
+  '/leagues/$leagueId': typeof AppLeaguesLeagueIdRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/leagues/$leagueId/standings': typeof LeaguesLeagueIdStandingsRoute
-  '/leagues/$leagueId/team/$teamId': typeof LeaguesLeagueIdTeamTeamIdRoute
+  '/backend': typeof AppBackendIndexRoute
+  '/leagues/$leagueId/standings': typeof AppLeaguesLeagueIdStandingsRoute
+  '/leagues/$leagueId/team/$teamId': typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/backend/$table': typeof BackendTableRoute
-  '/leagues/$leagueId': typeof LeaguesLeagueIdRouteWithChildren
-  '/backend/': typeof BackendIndexRoute
+  '/_app': typeof AppRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/backend/$table': typeof AppBackendTableRoute
+  '/_app/leagues/$leagueId': typeof AppLeaguesLeagueIdRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/leagues/$leagueId/standings': typeof LeaguesLeagueIdStandingsRoute
-  '/leagues/$leagueId/team/$teamId': typeof LeaguesLeagueIdTeamTeamIdRoute
+  '/_app/backend/': typeof AppBackendIndexRoute
+  '/_app/leagues/$leagueId/standings': typeof AppLeaguesLeagueIdStandingsRoute
+  '/_app/leagues/$leagueId/team/$teamId': typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/dashboard'
     | '/backend/$table'
     | '/leagues/$leagueId'
-    | '/backend/'
     | '/api/auth/$'
+    | '/backend/'
     | '/leagues/$leagueId/standings'
     | '/leagues/$leagueId/team/$teamId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/dashboard'
     | '/backend/$table'
     | '/leagues/$leagueId'
-    | '/backend'
     | '/api/auth/$'
+    | '/backend'
     | '/leagues/$leagueId/standings'
     | '/leagues/$leagueId/team/$teamId'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
-    | '/backend/$table'
-    | '/leagues/$leagueId'
-    | '/backend/'
+    | '/_app'
+    | '/login'
+    | '/_app/dashboard'
+    | '/_app/backend/$table'
+    | '/_app/leagues/$leagueId'
     | '/api/auth/$'
-    | '/leagues/$leagueId/standings'
-    | '/leagues/$leagueId/team/$teamId'
+    | '/_app/backend/'
+    | '/_app/leagues/$leagueId/standings'
+    | '/_app/leagues/$leagueId/team/$teamId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
-  BackendTableRoute: typeof BackendTableRoute
-  LeaguesLeagueIdRoute: typeof LeaguesLeagueIdRouteWithChildren
-  BackendIndexRoute: typeof BackendIndexRoute
+  AppRouteRoute: typeof AppRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -150,33 +174,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/backend/': {
-      id: '/backend/'
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/backend/': {
+      id: '/_app/backend/'
       path: '/backend'
       fullPath: '/backend/'
-      preLoaderRoute: typeof BackendIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leagues/$leagueId': {
-      id: '/leagues/$leagueId'
-      path: '/leagues/$leagueId'
-      fullPath: '/leagues/$leagueId'
-      preLoaderRoute: typeof LeaguesLeagueIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/backend/$table': {
-      id: '/backend/$table'
-      path: '/backend/$table'
-      fullPath: '/backend/$table'
-      preLoaderRoute: typeof BackendTableRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leagues/$leagueId/standings': {
-      id: '/leagues/$leagueId/standings'
-      path: '/standings'
-      fullPath: '/leagues/$leagueId/standings'
-      preLoaderRoute: typeof LeaguesLeagueIdStandingsRouteImport
-      parentRoute: typeof LeaguesLeagueIdRoute
+      preLoaderRoute: typeof AppBackendIndexRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -185,36 +195,72 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/leagues/$leagueId/team/$teamId': {
-      id: '/leagues/$leagueId/team/$teamId'
+    '/_app/leagues/$leagueId': {
+      id: '/_app/leagues/$leagueId'
+      path: '/leagues/$leagueId'
+      fullPath: '/leagues/$leagueId'
+      preLoaderRoute: typeof AppLeaguesLeagueIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/backend/$table': {
+      id: '/_app/backend/$table'
+      path: '/backend/$table'
+      fullPath: '/backend/$table'
+      preLoaderRoute: typeof AppBackendTableRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/leagues/$leagueId/standings': {
+      id: '/_app/leagues/$leagueId/standings'
+      path: '/standings'
+      fullPath: '/leagues/$leagueId/standings'
+      preLoaderRoute: typeof AppLeaguesLeagueIdStandingsRouteImport
+      parentRoute: typeof AppLeaguesLeagueIdRoute
+    }
+    '/_app/leagues/$leagueId/team/$teamId': {
+      id: '/_app/leagues/$leagueId/team/$teamId'
       path: '/team/$teamId'
       fullPath: '/leagues/$leagueId/team/$teamId'
-      preLoaderRoute: typeof LeaguesLeagueIdTeamTeamIdRouteImport
-      parentRoute: typeof LeaguesLeagueIdRoute
+      preLoaderRoute: typeof AppLeaguesLeagueIdTeamTeamIdRouteImport
+      parentRoute: typeof AppLeaguesLeagueIdRoute
     }
   }
 }
 
-interface LeaguesLeagueIdRouteChildren {
-  LeaguesLeagueIdStandingsRoute: typeof LeaguesLeagueIdStandingsRoute
-  LeaguesLeagueIdTeamTeamIdRoute: typeof LeaguesLeagueIdTeamTeamIdRoute
+interface AppLeaguesLeagueIdRouteChildren {
+  AppLeaguesLeagueIdStandingsRoute: typeof AppLeaguesLeagueIdStandingsRoute
+  AppLeaguesLeagueIdTeamTeamIdRoute: typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
 
-const LeaguesLeagueIdRouteChildren: LeaguesLeagueIdRouteChildren = {
-  LeaguesLeagueIdStandingsRoute: LeaguesLeagueIdStandingsRoute,
-  LeaguesLeagueIdTeamTeamIdRoute: LeaguesLeagueIdTeamTeamIdRoute,
+const AppLeaguesLeagueIdRouteChildren: AppLeaguesLeagueIdRouteChildren = {
+  AppLeaguesLeagueIdStandingsRoute: AppLeaguesLeagueIdStandingsRoute,
+  AppLeaguesLeagueIdTeamTeamIdRoute: AppLeaguesLeagueIdTeamTeamIdRoute,
 }
 
-const LeaguesLeagueIdRouteWithChildren = LeaguesLeagueIdRoute._addFileChildren(
-  LeaguesLeagueIdRouteChildren,
+const AppLeaguesLeagueIdRouteWithChildren =
+  AppLeaguesLeagueIdRoute._addFileChildren(AppLeaguesLeagueIdRouteChildren)
+
+interface AppRouteRouteChildren {
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppBackendTableRoute: typeof AppBackendTableRoute
+  AppLeaguesLeagueIdRoute: typeof AppLeaguesLeagueIdRouteWithChildren
+  AppBackendIndexRoute: typeof AppBackendIndexRoute
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppDashboardRoute: AppDashboardRoute,
+  AppBackendTableRoute: AppBackendTableRoute,
+  AppLeaguesLeagueIdRoute: AppLeaguesLeagueIdRouteWithChildren,
+  AppBackendIndexRoute: AppBackendIndexRoute,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
-  BackendTableRoute: BackendTableRoute,
-  LeaguesLeagueIdRoute: LeaguesLeagueIdRouteWithChildren,
-  BackendIndexRoute: BackendIndexRoute,
+  AppRouteRoute: AppRouteRouteWithChildren,
+  LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

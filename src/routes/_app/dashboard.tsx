@@ -63,7 +63,7 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
   }
 })
 
-export const Route = createFileRoute('/dashboard')({
+export const Route = createFileRoute('/_app/dashboard')({
   loader: () => getDashboardData(),
   component: DashboardPage,
 })

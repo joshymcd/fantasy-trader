@@ -51,7 +51,7 @@ const getStandingsData = createServerFn({ method: 'GET' })
     }
   })
 
-export const Route = createFileRoute('/leagues/$leagueId/standings')({
+export const Route = createFileRoute('/_app/leagues/$leagueId/standings')({
   loader: ({ params }) =>
     getStandingsData({ data: { leagueId: params.leagueId } }),
   component: LeagueStandingsPage,

@@ -3,8 +3,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -12,16 +12,16 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/ui/select'
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -29,8 +29,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../components/ui/table'
-import { getBackendTableDetails } from '../../lib/backend/debug'
+} from '@/components/ui/table'
+import { getBackendTableDetails } from '@/lib/backend/debug'
 
 type BackendTableSearch = {
   page: number
@@ -151,7 +151,7 @@ function getRelatedLinks(table: string, row: Record<string, string>) {
   return []
 }
 
-export const Route = createFileRoute('/backend/$table')({
+export const Route = createFileRoute('/_app/backend/$table')({
   validateSearch: (search): BackendTableSearch => ({
     page: parseSearchNumber(search.page, 1),
     pageSize: parseSearchNumber(search.pageSize, 50),

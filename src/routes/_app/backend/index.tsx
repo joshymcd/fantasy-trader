@@ -3,26 +3,26 @@ import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 import { count, desc, eq } from 'drizzle-orm'
 
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '../../components/ui/card'
-import { Checkbox } from '../../components/ui/checkbox'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
+} from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/ui/select'
-import { Separator } from '../../components/ui/separator'
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import {
   Table,
   TableBody,
@@ -30,35 +30,35 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../components/ui/table'
-import { Textarea } from '../../components/ui/textarea'
+} from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import {
   getBackendSystemStats,
   getBackendTableOverview,
-} from '../../lib/backend/debug'
-import { db } from '../../db/index'
-import { instruments, leagues, seasons, teams } from '../../db/schema'
-import { populateCalendar } from '../../lib/game/calendar'
-import { getHoldingsAtDate, validateRoster } from '../../lib/game/holdings'
-import { ensurePricesForInstrumentUniverse } from '../../lib/game/market-data'
-import { createLeague, createTeam, listLeagues } from '../../lib/game/league'
+} from '@/lib/backend/debug'
+import { db } from '@/db/index'
+import { instruments, leagues, seasons, teams } from '@/db/schema'
+import { populateCalendar } from '@/lib/game/calendar'
+import { getHoldingsAtDate, validateRoster } from '@/lib/game/holdings'
+import { ensurePricesForInstrumentUniverse } from '@/lib/game/market-data'
+import { createLeague, createTeam, listLeagues } from '@/lib/game/league'
 import {
   getAvailableInstruments,
   selectPortfolio,
   validatePortfolio,
-} from '../../lib/game/draft'
+} from '@/lib/game/draft'
 import {
   activateSeason,
   createSeason,
   listSeasons,
   populateSeasonInstruments,
-} from '../../lib/game/season'
+} from '@/lib/game/season'
 import {
   calculateTeamDay,
   calculateTeamRange,
   getOrCalculateScore,
   invalidateScores,
-} from '../../lib/game/scoring'
+} from '@/lib/game/scoring'
 
 const parseIsoDate = (value: string) => {
   const parsed = new Date(`${value}T00:00:00.000Z`)
@@ -398,7 +398,7 @@ const runTeamDebugSnapshot = createServerFn({ method: 'POST' })
     }
   })
 
-export const Route = createFileRoute('/backend/')({
+export const Route = createFileRoute('/_app/backend/')({
   loader: async () => getTables(),
   component: BackendIndexPage,
 })

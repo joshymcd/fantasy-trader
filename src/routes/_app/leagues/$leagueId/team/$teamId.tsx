@@ -76,7 +76,7 @@ const getTeamPageData = createServerFn({ method: 'GET' })
     }
   })
 
-export const Route = createFileRoute('/leagues/$leagueId/team/$teamId')({
+export const Route = createFileRoute('/_app/leagues/$leagueId/team/$teamId')({
   loader: ({ params }) =>
     getTeamPageData({
       data: {
