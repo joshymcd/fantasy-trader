@@ -12,6 +12,7 @@ import { instruments, leagues, seasons, teams } from '../../db/schema'
 import { populateCalendar } from '../../lib/game/calendar'
 import { getHoldingsAtDate, validateRoster } from '../../lib/game/holdings'
 import { ensurePricesForInstrumentUniverse } from '../../lib/game/market-data'
+import { createLeague, createTeam, listLeagues } from '../../lib/game/league'
 import {
   activateSeason,
   createSeason,
@@ -58,6 +59,8 @@ const getTables = createServerFn({ method: 'GET' }).handler(async () => {
     .innerJoin(leagues, eq(teams.leagueId, leagues.id))
     .orderBy(desc(teams.createdAt))
 
+  const leagueRows = await listLeagues()
+
   return {
     generatedAt: new Date().toISOString(),
     systemStats,
@@ -65,6 +68,7 @@ const getTables = createServerFn({ method: 'GET' }).handler(async () => {
       ...season,
       instrumentCount: instrumentCountBySeason.get(season.id) ?? 0,
     })),
+    leagues: leagueRows,
     tables,
     teams: teamRows,
     totalRows: tables.reduce((sum, table) => sum + table.rowCount, 0),
@@ -146,6 +150,52 @@ const runActivateSeason = createServerFn({ method: 'POST' })
     }
 
     return activateSeason(data.seasonId)
+  })
+
+const runCreateLeague = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (payload: {
+      seasonId: string
+      name: string
+      ownershipMode: 'UNIQUE' | 'DUPLICATES'
+      creatorId: string
+    }) => payload,
+  )
+  .handler(async ({ data }) => {
+    if (!data.name.trim()) {
+      throw new Error('League name is required')
+    }
+
+    if (!data.creatorId.trim()) {
+      throw new Error('Creator user id is required')
+    }
+
+    return createLeague({
+      seasonId: data.seasonId,
+      name: data.name,
+      ownershipMode: data.ownershipMode,
+      creatorId: data.creatorId,
+    })
+  })
+
+const runCreateTeam = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (payload: { leagueId: string; userId: string; name: string }) => payload,
+  )
+  .handler(async ({ data }) => {
+    if (!data.userId.trim()) {
+      throw new Error('User id is required')
+    }
+
+    if (!data.name.trim()) {
+      throw new Error('Team name is required')
+    }
+
+    return createTeam({
+      leagueId: data.leagueId,
+      userId: data.userId,
+      name: data.name,
+    })
   })
 
 const runCalculateDayScore = createServerFn({ method: 'POST' })
@@ -283,6 +333,17 @@ function BackendIndexPage() {
   const [seasonCreateStatus, setSeasonCreateStatus] = useState('')
   const [seasonPopulateStatus, setSeasonPopulateStatus] = useState('')
   const [seasonActivateStatus, setSeasonActivateStatus] = useState('')
+  const [leagueName, setLeagueName] = useState('My League')
+  const [leagueCreatorId, setLeagueCreatorId] = useState('dev-user-1')
+  const [leagueOwnershipMode, setLeagueOwnershipMode] = useState<
+    'UNIQUE' | 'DUPLICATES'
+  >('UNIQUE')
+  const [leagueSeasonId, setLeagueSeasonId] = useState('')
+  const [leagueCreateStatus, setLeagueCreateStatus] = useState('')
+  const [teamLeagueId, setTeamLeagueId] = useState('')
+  const [teamUserId, setTeamUserId] = useState('dev-user-1')
+  const [teamName, setTeamName] = useState('My Team')
+  const [teamCreateStatus, setTeamCreateStatus] = useState('')
   const [scoreStatus, setScoreStatus] = useState('')
   const [rangeStatus, setRangeStatus] = useState('')
   const [invalidateStatus, setInvalidateStatus] = useState('')
@@ -292,6 +353,8 @@ function BackendIndexPage() {
   const [isSeasonCreateLoading, setIsSeasonCreateLoading] = useState(false)
   const [isSeasonPopulateLoading, setIsSeasonPopulateLoading] = useState(false)
   const [isSeasonActivateLoading, setIsSeasonActivateLoading] = useState(false)
+  const [isLeagueCreateLoading, setIsLeagueCreateLoading] = useState(false)
+  const [isTeamCreateLoading, setIsTeamCreateLoading] = useState(false)
   const [isScoreLoading, setIsScoreLoading] = useState(false)
   const [isRangeLoading, setIsRangeLoading] = useState(false)
   const [isInvalidateLoading, setIsInvalidateLoading] = useState(false)
@@ -302,14 +365,28 @@ function BackendIndexPage() {
   const tables = data.tables
   const teamOptions = data.teams
   const seasonOptions = data.seasons
+  const leagueOptions = data.leagues
   const defaultTeamId = teamOptions[0]?.teamId ?? ''
   const defaultSeasonId = seasonOptions[0]?.id ?? ''
+  const defaultLeagueId = leagueOptions[0]?.id ?? ''
 
   useEffect(() => {
     if (!seasonActionSeasonId && defaultSeasonId) {
       setSeasonActionSeasonId(defaultSeasonId)
     }
   }, [seasonActionSeasonId, defaultSeasonId])
+
+  useEffect(() => {
+    if (!leagueSeasonId && defaultSeasonId) {
+      setLeagueSeasonId(defaultSeasonId)
+    }
+  }, [leagueSeasonId, defaultSeasonId])
+
+  useEffect(() => {
+    if (!teamLeagueId && defaultLeagueId) {
+      setTeamLeagueId(defaultLeagueId)
+    }
+  }, [teamLeagueId, defaultLeagueId])
 
   const [selectedTeamId, setSelectedTeamId] = useState(defaultTeamId)
   const [scoreDate, setScoreDate] = useState(defaultTargetDate)
@@ -502,6 +579,76 @@ function BackendIndexPage() {
       )
     } finally {
       setIsSeasonActivateLoading(false)
+    }
+  }
+
+  const handleCreateLeague = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    if (!leagueSeasonId) {
+      setLeagueCreateStatus('Create league error: select a season first')
+      return
+    }
+
+    setIsLeagueCreateLoading(true)
+    setLeagueCreateStatus('Running...')
+
+    try {
+      const result = await runCreateLeague({
+        data: {
+          seasonId: leagueSeasonId,
+          name: leagueName,
+          ownershipMode: leagueOwnershipMode,
+          creatorId: leagueCreatorId,
+        },
+      })
+
+      setLeagueCreateStatus(
+        `League created: ${result.name} (${result.id}) status ${result.status}`,
+      )
+      setTeamLeagueId(result.id)
+      await router.invalidate()
+    } catch (error) {
+      setLeagueCreateStatus(
+        `Create league error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsLeagueCreateLoading(false)
+    }
+  }
+
+  const handleCreateTeam = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!teamLeagueId) {
+      setTeamCreateStatus('Create team error: select a league first')
+      return
+    }
+
+    setIsTeamCreateLoading(true)
+    setTeamCreateStatus('Running...')
+
+    try {
+      const result = await runCreateTeam({
+        data: {
+          leagueId: teamLeagueId,
+          userId: teamUserId,
+          name: teamName,
+        },
+      })
+
+      setTeamCreateStatus(
+        `Team created: ${result.name} (${result.id}) for user ${result.userId}`,
+      )
+      await router.invalidate()
+    } catch (error) {
+      setTeamCreateStatus(
+        `Create team error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsTeamCreateLoading(false)
     }
   }
 
@@ -881,6 +1028,147 @@ function BackendIndexPage() {
                   </td>
                   <td>{season.budget}</td>
                   <td>{season.instrumentCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section>
+        <h3>League and team tools</h3>
+
+        <h4>Create league</h4>
+        {seasonOptions.length === 0 ? (
+          <p>Create a season first.</p>
+        ) : (
+          <form onSubmit={handleCreateLeague}>
+            <p>
+              <label>
+                Season{' '}
+                <select
+                  value={leagueSeasonId}
+                  onChange={(event) => setLeagueSeasonId(event.target.value)}
+                >
+                  {seasonOptions.map((season) => (
+                    <option key={season.id} value={season.id}>
+                      {season.name} ({season.status})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </p>
+            <p>
+              <label>
+                League name{' '}
+                <input
+                  type="text"
+                  value={leagueName}
+                  onChange={(event) => setLeagueName(event.target.value)}
+                />
+              </label>
+            </p>
+            <p>
+              <label>
+                Creator user id{' '}
+                <input
+                  type="text"
+                  value={leagueCreatorId}
+                  onChange={(event) => setLeagueCreatorId(event.target.value)}
+                />
+              </label>{' '}
+              <label>
+                Ownership mode{' '}
+                <select
+                  value={leagueOwnershipMode}
+                  onChange={(event) =>
+                    setLeagueOwnershipMode(
+                      event.target.value as 'UNIQUE' | 'DUPLICATES',
+                    )
+                  }
+                >
+                  <option value="UNIQUE">UNIQUE</option>
+                  <option value="DUPLICATES">DUPLICATES</option>
+                </select>
+              </label>
+            </p>
+            <button type="submit" disabled={isLeagueCreateLoading}>
+              {isLeagueCreateLoading ? 'Running...' : 'Create league'}
+            </button>
+            <p>{leagueCreateStatus}</p>
+          </form>
+        )}
+
+        <h4>Create team</h4>
+        {leagueOptions.length === 0 ? (
+          <p>Create a league first.</p>
+        ) : (
+          <form onSubmit={handleCreateTeam}>
+            <p>
+              <label>
+                League{' '}
+                <select
+                  value={teamLeagueId}
+                  onChange={(event) => setTeamLeagueId(event.target.value)}
+                >
+                  {leagueOptions.map((league) => (
+                    <option key={league.id} value={league.id}>
+                      {league.name} ({league.ownershipMode}) teams:{' '}
+                      {league.teamCount}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </p>
+            <p>
+              <label>
+                User id{' '}
+                <input
+                  type="text"
+                  value={teamUserId}
+                  onChange={(event) => setTeamUserId(event.target.value)}
+                />
+              </label>{' '}
+              <label>
+                Team name{' '}
+                <input
+                  type="text"
+                  value={teamName}
+                  onChange={(event) => setTeamName(event.target.value)}
+                />
+              </label>
+            </p>
+            <button type="submit" disabled={isTeamCreateLoading}>
+              {isTeamCreateLoading ? 'Running...' : 'Create team'}
+            </button>
+            <p>{teamCreateStatus}</p>
+          </form>
+        )}
+
+        <h4>League summary</h4>
+        {leagueOptions.length === 0 ? (
+          <p>No leagues to display.</p>
+        ) : (
+          <table border={1} cellPadding={6} cellSpacing={0}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Season</th>
+                <th>Ownership</th>
+                <th>Creator</th>
+                <th>Teams</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leagueOptions.map((league) => (
+                <tr key={league.id}>
+                  <td>{league.name}</td>
+                  <td>{league.status}</td>
+                  <td>{league.seasonName}</td>
+                  <td>{league.ownershipMode}</td>
+                  <td>{league.creatorId}</td>
+                  <td>{league.teamCount}</td>
                 </tr>
               ))}
             </tbody>
