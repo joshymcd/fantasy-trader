@@ -1,11 +1,7 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 
-import {
-  type DebugTableName,
-  getBackendTableDetails,
-  type TableDetails,
-} from '../../lib/backend/debug'
+import { getBackendTableDetails } from '../../lib/backend/debug'
 
 type BackendTableSearch = {
   page: number
@@ -40,7 +36,7 @@ const getTableData = createServerFn({ method: 'GET' })
     }
   })
 
-const parseSearchNumber = (value: unknown, fallback: number): number => {
+const parseSearchNumber = (value: unknown, fallback: number) => {
   if (typeof value !== 'string') return fallback
 
   const parsed = Number.parseInt(value, 10)
@@ -49,15 +45,7 @@ const parseSearchNumber = (value: unknown, fallback: number): number => {
   return parsed
 }
 
-function getRelatedLinks(
-  table: DebugTableName,
-  row: Record<string, string>,
-): Array<{
-  label: string
-  table: DebugTableName
-  filterColumn: string
-  filterValue: string
-}> {
+function getRelatedLinks(table: string, row: Record<string, string>) {
   if (table === 'seasons' && row.id) {
     return [
       {
@@ -145,8 +133,8 @@ export const Route = createFileRoute('/backend/$table')({
       typeof search.filterValue === 'string' ? search.filterValue : '',
   }),
   loaderDeps: ({ search }) => search,
-  loader: async ({ params, deps }) => {
-    return (await getTableData({
+  loader: async ({ params, deps }) =>
+    getTableData({
       data: {
         table: params.table,
         page: deps.page,
@@ -155,13 +143,12 @@ export const Route = createFileRoute('/backend/$table')({
         filterColumn: deps.filterColumn,
         filterValue: deps.filterValue,
       },
-    })) as TableDetails
-  },
+    }),
   component: BackendTablePage,
 })
 
 function BackendTablePage() {
-  const data = Route.useLoaderData() as TableDetails
+  const data = Route.useLoaderData()
   const search = Route.useSearch()
 
   return (
@@ -265,7 +252,7 @@ function BackendTablePage() {
 
       <h2>Columns</h2>
       <ul>
-        {data.columns.map((column: string) => (
+        {data.columns.map((column) => (
           <li key={column}>{column}</li>
         ))}
       </ul>
@@ -277,16 +264,16 @@ function BackendTablePage() {
         <table border={1} cellPadding={6} cellSpacing={0}>
           <thead>
             <tr>
-              {data.columns.map((column: string) => (
+              {data.columns.map((column) => (
                 <th key={column}>{column}</th>
               ))}
               <th>Related</th>
             </tr>
           </thead>
           <tbody>
-            {data.rows.map((row: Record<string, string>, rowIndex: number) => (
+            {data.rows.map((row, rowIndex) => (
               <tr key={`${data.name}-${rowIndex}`}>
-                {data.columns.map((column: string) => (
+                {data.columns.map((column) => (
                   <td key={`${rowIndex}-${column}`}>{row[column] ?? ''}</td>
                 ))}
                 <td>

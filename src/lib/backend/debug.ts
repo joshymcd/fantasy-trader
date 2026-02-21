@@ -1,6 +1,18 @@
-import { sql } from 'drizzle-orm'
+import { count, countDistinct, desc, eq, max, min } from 'drizzle-orm'
 
 import { db } from '../../db/index'
+import {
+  instruments,
+  leagues,
+  priceDaily,
+  rosterMoves,
+  seasons,
+  teamDayScores,
+  teams,
+  todos,
+  tradingCalendar,
+  waiverClaims,
+} from '../../db/schema'
 
 export const DEBUG_TABLES = [
   'seasons',
@@ -22,6 +34,14 @@ export type TableOverview = {
   rowCount: number
 }
 
+export type BackendSystemStats = {
+  tradingDays: number
+  priceRows: number
+  distinctPriceSymbols: number
+  oldestPriceDate: string | null
+  latestPriceDate: string | null
+}
+
 export type TableDetails = {
   name: DebugTableName
   rowCount: number
@@ -41,55 +61,78 @@ type TableQueryOptions = {
   filterValue?: string
 }
 
+const TABLE_COLUMNS: Record<DebugTableName, string[]> = {
+  seasons: [
+    'id',
+    'name',
+    'market',
+    'start_date',
+    'end_date',
+    'trade_deadline_date',
+    'budget',
+    'scoring_multiplier',
+    'first_day_penalty',
+    'max_swaps_per_day',
+    'max_swaps_per_week',
+    'status',
+    'created_at',
+  ],
+  instruments: [
+    'id',
+    'season_id',
+    'symbol',
+    'name',
+    'tier',
+    'tier_cost',
+    'market_cap',
+    'exchange',
+    'created_at',
+  ],
+  leagues: [
+    'id',
+    'season_id',
+    'name',
+    'ownership_mode',
+    'creator_id',
+    'status',
+    'created_at',
+  ],
+  teams: ['id', 'league_id', 'user_id', 'name', 'faab_budget', 'created_at'],
+  roster_moves: [
+    'id',
+    'team_id',
+    'type',
+    'symbol',
+    'effective_date',
+    'metadata',
+    'created_at',
+  ],
+  price_daily: ['symbol', 'date', 'adj_close', 'fetched_at'],
+  team_day_scores: ['team_id', 'date', 'points', 'breakdown', 'computed_at'],
+  trading_calendar: [
+    'date',
+    'is_trading_day',
+    'next_trading_day',
+    'prev_trading_day',
+  ],
+  waiver_claims: [
+    'id',
+    'team_id',
+    'add_symbol',
+    'drop_symbol',
+    'faab_bid',
+    'status',
+    'effective_date',
+    'created_at',
+  ],
+  todos: ['id', 'title', 'created_at'],
+}
+
 const isDebugTableName = (value: string): value is DebugTableName =>
-  DEBUG_TABLES.includes(value as DebugTableName)
+  (DEBUG_TABLES as readonly string[]).includes(value)
 
-const getCountForTable = async (tableName: DebugTableName): Promise<number> => {
-  const result = (await db.execute(
-    sql.raw(`select count(*)::int as count from "${tableName}"`),
-  )) as { rows: Array<{ count: number | string }> }
-
-  return Number(result.rows[0]?.count ?? 0)
-}
-
-export async function getBackendTableOverview(): Promise<TableOverview[]> {
-  const counts = await Promise.all(
-    DEBUG_TABLES.map(async (name) => ({
-      name,
-      rowCount: await getCountForTable(name),
-    })),
-  )
-
-  return counts
-}
-
-export async function getBackendTableDetails(
-  tableName: string,
-  options: TableQueryOptions = {},
-): Promise<TableDetails> {
-  if (!isDebugTableName(tableName)) {
-    throw new Error('Unknown table')
-  }
-
-  const columnsResult = (await db.execute(sql`
-    select column_name
-    from information_schema.columns
-    where table_schema = 'public' and table_name = ${tableName}
-    order by ordinal_position
-  `)) as { rows: Array<{ column_name: string }> }
-
-  const columns = columnsResult.rows.map((row) => row.column_name)
-  const hasCreatedAt = columns.includes('created_at')
-
-  const rowsResult = (await db.execute(
-    sql.raw(
-      hasCreatedAt
-        ? `select * from "${tableName}" order by "created_at" desc limit 2000`
-        : `select * from "${tableName}" limit 2000`,
-    ),
-  )) as { rows: Array<Record<string, unknown>> }
-
-  const rows = rowsResult.rows.map((row) => {
+const normalizeRows = (rows: object[]) =>
+  rows.map((row) => {
     const normalized: Record<string, string> = {}
 
     for (const [key, value] of Object.entries(row)) {
@@ -104,6 +147,159 @@ export async function getBackendTableDetails(
 
     return normalized
   })
+
+const getRowsForTable = async (tableName: DebugTableName) => {
+  switch (tableName) {
+    case 'seasons':
+      return db
+        .select()
+        .from(seasons)
+        .orderBy(desc(seasons.createdAt))
+        .limit(2000)
+    case 'instruments':
+      return db
+        .select()
+        .from(instruments)
+        .orderBy(desc(instruments.createdAt))
+        .limit(2000)
+    case 'leagues':
+      return db
+        .select()
+        .from(leagues)
+        .orderBy(desc(leagues.createdAt))
+        .limit(2000)
+    case 'teams':
+      return db.select().from(teams).orderBy(desc(teams.createdAt)).limit(2000)
+    case 'roster_moves':
+      return db
+        .select()
+        .from(rosterMoves)
+        .orderBy(desc(rosterMoves.createdAt))
+        .limit(2000)
+    case 'price_daily':
+      return db
+        .select()
+        .from(priceDaily)
+        .orderBy(desc(priceDaily.date))
+        .limit(2000)
+    case 'team_day_scores':
+      return db
+        .select()
+        .from(teamDayScores)
+        .orderBy(desc(teamDayScores.date))
+        .limit(2000)
+    case 'trading_calendar':
+      return db
+        .select()
+        .from(tradingCalendar)
+        .orderBy(desc(tradingCalendar.date))
+        .limit(2000)
+    case 'waiver_claims':
+      return db
+        .select()
+        .from(waiverClaims)
+        .orderBy(desc(waiverClaims.createdAt))
+        .limit(2000)
+    case 'todos':
+      return db.select().from(todos).orderBy(desc(todos.createdAt)).limit(2000)
+  }
+}
+
+const getCountForTable = async (tableName: DebugTableName) => {
+  switch (tableName) {
+    case 'seasons': {
+      const [result] = await db.select({ value: count() }).from(seasons)
+      return Number(result?.value ?? 0)
+    }
+    case 'instruments': {
+      const [result] = await db.select({ value: count() }).from(instruments)
+      return Number(result?.value ?? 0)
+    }
+    case 'leagues': {
+      const [result] = await db.select({ value: count() }).from(leagues)
+      return Number(result?.value ?? 0)
+    }
+    case 'teams': {
+      const [result] = await db.select({ value: count() }).from(teams)
+      return Number(result?.value ?? 0)
+    }
+    case 'roster_moves': {
+      const [result] = await db.select({ value: count() }).from(rosterMoves)
+      return Number(result?.value ?? 0)
+    }
+    case 'price_daily': {
+      const [result] = await db.select({ value: count() }).from(priceDaily)
+      return Number(result?.value ?? 0)
+    }
+    case 'team_day_scores': {
+      const [result] = await db.select({ value: count() }).from(teamDayScores)
+      return Number(result?.value ?? 0)
+    }
+    case 'trading_calendar': {
+      const [result] = await db.select({ value: count() }).from(tradingCalendar)
+      return Number(result?.value ?? 0)
+    }
+    case 'waiver_claims': {
+      const [result] = await db.select({ value: count() }).from(waiverClaims)
+      return Number(result?.value ?? 0)
+    }
+    case 'todos': {
+      const [result] = await db.select({ value: count() }).from(todos)
+      return Number(result?.value ?? 0)
+    }
+  }
+}
+
+export async function getBackendTableOverview(): Promise<TableOverview[]> {
+  const counts = await Promise.all(
+    DEBUG_TABLES.map(async (name) => ({
+      name,
+      rowCount: await getCountForTable(name),
+    })),
+  )
+
+  return counts
+}
+
+export async function getBackendSystemStats(): Promise<BackendSystemStats> {
+  const [tradingDaysResult] = await db
+    .select({ value: count() })
+    .from(tradingCalendar)
+    .where(eq(tradingCalendar.isTradingDay, true))
+
+  const [priceStats] = await db
+    .select({
+      rowCount: count(),
+      symbolCount: countDistinct(priceDaily.symbol),
+      oldestDate: min(priceDaily.date),
+      latestDate: max(priceDaily.date),
+    })
+    .from(priceDaily)
+
+  return {
+    tradingDays: Number(tradingDaysResult?.value ?? 0),
+    priceRows: Number(priceStats?.rowCount ?? 0),
+    distinctPriceSymbols: Number(priceStats?.symbolCount ?? 0),
+    oldestPriceDate: priceStats?.oldestDate
+      ? new Date(priceStats.oldestDate).toISOString().slice(0, 10)
+      : null,
+    latestPriceDate: priceStats?.latestDate
+      ? new Date(priceStats.latestDate).toISOString().slice(0, 10)
+      : null,
+  }
+}
+
+export async function getBackendTableDetails(
+  tableName: string,
+  options: TableQueryOptions = {},
+): Promise<TableDetails> {
+  if (!isDebugTableName(tableName)) {
+    throw new Error('Unknown table')
+  }
+
+  const columns = TABLE_COLUMNS[tableName]
+  const rawRows = await getRowsForTable(tableName)
+  const rows = normalizeRows(rawRows)
 
   const query = (options.query ?? '').trim().toLowerCase()
   const filterColumn = (options.filterColumn ?? '').trim()
