@@ -9,11 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BackendIndexRouteImport } from './routes/backend/index'
+import { Route as LeaguesLeagueIdRouteImport } from './routes/leagues/$leagueId'
 import { Route as BackendTableRouteImport } from './routes/backend/$table'
+import { Route as LeaguesLeagueIdStandingsRouteImport } from './routes/leagues/$leagueId/standings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as LeaguesLeagueIdTeamTeamIdRouteImport } from './routes/leagues/$leagueId/team/$teamId'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -24,53 +33,116 @@ const BackendIndexRoute = BackendIndexRouteImport.update({
   path: '/backend/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaguesLeagueIdRoute = LeaguesLeagueIdRouteImport.update({
+  id: '/leagues/$leagueId',
+  path: '/leagues/$leagueId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BackendTableRoute = BackendTableRouteImport.update({
   id: '/backend/$table',
   path: '/backend/$table',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaguesLeagueIdStandingsRoute =
+  LeaguesLeagueIdStandingsRouteImport.update({
+    id: '/standings',
+    path: '/standings',
+    getParentRoute: () => LeaguesLeagueIdRoute,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaguesLeagueIdTeamTeamIdRoute =
+  LeaguesLeagueIdTeamTeamIdRouteImport.update({
+    id: '/team/$teamId',
+    path: '/team/$teamId',
+    getParentRoute: () => LeaguesLeagueIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/backend/$table': typeof BackendTableRoute
+  '/leagues/$leagueId': typeof LeaguesLeagueIdRouteWithChildren
   '/backend/': typeof BackendIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/leagues/$leagueId/standings': typeof LeaguesLeagueIdStandingsRoute
+  '/leagues/$leagueId/team/$teamId': typeof LeaguesLeagueIdTeamTeamIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/backend/$table': typeof BackendTableRoute
+  '/leagues/$leagueId': typeof LeaguesLeagueIdRouteWithChildren
   '/backend': typeof BackendIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/leagues/$leagueId/standings': typeof LeaguesLeagueIdStandingsRoute
+  '/leagues/$leagueId/team/$teamId': typeof LeaguesLeagueIdTeamTeamIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/backend/$table': typeof BackendTableRoute
+  '/leagues/$leagueId': typeof LeaguesLeagueIdRouteWithChildren
   '/backend/': typeof BackendIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/leagues/$leagueId/standings': typeof LeaguesLeagueIdStandingsRoute
+  '/leagues/$leagueId/team/$teamId': typeof LeaguesLeagueIdTeamTeamIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/backend/$table' | '/backend/' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/backend/$table'
+    | '/leagues/$leagueId'
+    | '/backend/'
+    | '/api/auth/$'
+    | '/leagues/$leagueId/standings'
+    | '/leagues/$leagueId/team/$teamId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/backend/$table' | '/backend' | '/api/auth/$'
-  id: '__root__' | '/' | '/backend/$table' | '/backend/' | '/api/auth/$'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/backend/$table'
+    | '/leagues/$leagueId'
+    | '/backend'
+    | '/api/auth/$'
+    | '/leagues/$leagueId/standings'
+    | '/leagues/$leagueId/team/$teamId'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/backend/$table'
+    | '/leagues/$leagueId'
+    | '/backend/'
+    | '/api/auth/$'
+    | '/leagues/$leagueId/standings'
+    | '/leagues/$leagueId/team/$teamId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   BackendTableRoute: typeof BackendTableRoute
+  LeaguesLeagueIdRoute: typeof LeaguesLeagueIdRouteWithChildren
   BackendIndexRoute: typeof BackendIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -85,12 +157,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BackendIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leagues/$leagueId': {
+      id: '/leagues/$leagueId'
+      path: '/leagues/$leagueId'
+      fullPath: '/leagues/$leagueId'
+      preLoaderRoute: typeof LeaguesLeagueIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/backend/$table': {
       id: '/backend/$table'
       path: '/backend/$table'
       fullPath: '/backend/$table'
       preLoaderRoute: typeof BackendTableRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/leagues/$leagueId/standings': {
+      id: '/leagues/$leagueId/standings'
+      path: '/standings'
+      fullPath: '/leagues/$leagueId/standings'
+      preLoaderRoute: typeof LeaguesLeagueIdStandingsRouteImport
+      parentRoute: typeof LeaguesLeagueIdRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -99,12 +185,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leagues/$leagueId/team/$teamId': {
+      id: '/leagues/$leagueId/team/$teamId'
+      path: '/team/$teamId'
+      fullPath: '/leagues/$leagueId/team/$teamId'
+      preLoaderRoute: typeof LeaguesLeagueIdTeamTeamIdRouteImport
+      parentRoute: typeof LeaguesLeagueIdRoute
+    }
   }
 }
 
+interface LeaguesLeagueIdRouteChildren {
+  LeaguesLeagueIdStandingsRoute: typeof LeaguesLeagueIdStandingsRoute
+  LeaguesLeagueIdTeamTeamIdRoute: typeof LeaguesLeagueIdTeamTeamIdRoute
+}
+
+const LeaguesLeagueIdRouteChildren: LeaguesLeagueIdRouteChildren = {
+  LeaguesLeagueIdStandingsRoute: LeaguesLeagueIdStandingsRoute,
+  LeaguesLeagueIdTeamTeamIdRoute: LeaguesLeagueIdTeamTeamIdRoute,
+}
+
+const LeaguesLeagueIdRouteWithChildren = LeaguesLeagueIdRoute._addFileChildren(
+  LeaguesLeagueIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   BackendTableRoute: BackendTableRoute,
+  LeaguesLeagueIdRoute: LeaguesLeagueIdRouteWithChildren,
   BackendIndexRoute: BackendIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
