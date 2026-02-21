@@ -1,6 +1,34 @@
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { useState } from 'react'
 
+import { Badge } from '../../components/ui/badge'
+import { Button } from '../../components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
 import { getBackendTableDetails } from '../../lib/backend/debug'
 
 type BackendTableSearch = {
@@ -150,156 +178,224 @@ export const Route = createFileRoute('/backend/$table')({
 function BackendTablePage() {
   const data = Route.useLoaderData()
   const search = Route.useSearch()
+  const [filterColumn, setFilterColumn] = useState(
+    search.filterColumn || '__none',
+  )
 
   return (
-    <main className="p-6">
-      <p>
-        <Link to="/backend">Back to backend index</Link>
-      </p>
+    <main className="mx-auto min-h-screen w-full max-w-7xl space-y-6 bg-background p-6">
+      <div className="flex items-center justify-between">
+        <Button variant="outline" asChild>
+          <Link to="/backend">
+            <ArrowLeft className="mr-2 size-4" />
+            Back to backend
+          </Link>
+        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{data.rowCount} total rows</Badge>
+          <Badge variant="outline">{data.filteredRowCount} filtered</Badge>
+        </div>
+      </div>
 
-      <h1>Table: {data.name}</h1>
-      <p>Total rows: {data.rowCount}</p>
-      <p>
-        Filtered rows: {data.filteredRowCount} | Page {data.page} of{' '}
-        {data.totalPages} | Page size: {data.pageSize}
-      </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Table: {data.name}</CardTitle>
+          <CardDescription>
+            Page {data.page} of {data.totalPages} - page size {data.pageSize}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form method="get" className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="query">Text search</Label>
+              <Input id="query" name="query" defaultValue={search.query} />
+            </div>
 
-      <h2>Filters</h2>
-      <form method="get">
-        <p>
-          <label>
-            Text search{' '}
-            <input type="text" name="query" defaultValue={search.query} />
-          </label>
-        </p>
-        <p>
-          <label>
-            Filter column{' '}
-            <select name="filterColumn" defaultValue={search.filterColumn}>
-              <option value="">(none)</option>
-              {data.columns.map((column) => (
-                <option key={column} value={column}>
-                  {column}
-                </option>
-              ))}
-            </select>
-          </label>
-        </p>
-        <p>
-          <label>
-            Filter value{' '}
-            <input
-              type="text"
-              name="filterValue"
-              defaultValue={search.filterValue}
-            />
-          </label>
-        </p>
-        <p>
-          <label>
-            Page size{' '}
-            <input
-              type="number"
-              min={1}
-              max={200}
-              name="pageSize"
-              defaultValue={search.pageSize}
-            />
-          </label>
-        </p>
-        <input type="hidden" name="page" value="1" />
-        <button type="submit">Apply filters</button>{' '}
-        <Link
-          to="/backend/$table"
-          params={{ table: data.name }}
-          search={{
-            page: 1,
-            pageSize: 50,
-            query: '',
-            filterColumn: '',
-            filterValue: '',
-          }}
-        >
-          Reset
-        </Link>
-      </form>
+            <div className="space-y-2">
+              <Label htmlFor="filterValue">Filter value</Label>
+              <Input
+                id="filterValue"
+                name="filterValue"
+                defaultValue={search.filterValue}
+              />
+            </div>
 
-      <h2>Pagination</h2>
-      <p>
-        {data.page > 1 ? (
-          <>
-            <Link
-              to="/backend/$table"
-              params={{ table: data.name }}
-              search={{ ...search, page: data.page - 1 }}
-            >
-              Previous
-            </Link>{' '}
-          </>
-        ) : null}
-        {data.page < data.totalPages ? (
-          <>
-            <Link
-              to="/backend/$table"
-              params={{ table: data.name }}
-              search={{ ...search, page: data.page + 1 }}
-            >
-              Next
-            </Link>
-          </>
-        ) : null}
-      </p>
+            <div className="space-y-2">
+              <Label htmlFor="pageSize">Page size</Label>
+              <Input
+                id="pageSize"
+                type="number"
+                min={1}
+                max={200}
+                name="pageSize"
+                defaultValue={search.pageSize}
+              />
+            </div>
 
-      <h2>Columns</h2>
-      <ul>
-        {data.columns.map((column) => (
-          <li key={column}>{column}</li>
-        ))}
-      </ul>
-
-      <h2>Rows</h2>
-      {data.rows.length === 0 ? (
-        <p>No rows found.</p>
-      ) : (
-        <table border={1} cellPadding={6} cellSpacing={0}>
-          <thead>
-            <tr>
-              {data.columns.map((column) => (
-                <th key={column}>{column}</th>
-              ))}
-              <th>Related</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.rows.map((row, rowIndex) => (
-              <tr key={`${data.name}-${rowIndex}`}>
-                {data.columns.map((column) => (
-                  <td key={`${rowIndex}-${column}`}>{row[column] ?? ''}</td>
-                ))}
-                <td>
-                  {getRelatedLinks(data.name, row).map((link, linkIndex) => (
-                    <span key={`${data.name}-${rowIndex}-${linkIndex}`}>
-                      <Link
-                        to="/backend/$table"
-                        params={{ table: link.table }}
-                        search={{
-                          page: 1,
-                          pageSize: 50,
-                          query: '',
-                          filterColumn: link.filterColumn,
-                          filterValue: link.filterValue,
-                        }}
-                      >
-                        {link.label}
-                      </Link>{' '}
-                    </span>
+            <div className="space-y-2">
+              <Label>Filter column</Label>
+              <Select value={filterColumn} onValueChange={setFilterColumn}>
+                <SelectTrigger>
+                  <SelectValue placeholder="(none)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">(none)</SelectItem>
+                  {data.columns.map((column) => (
+                    <SelectItem key={column} value={column}>
+                      {column}
+                    </SelectItem>
                   ))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <input type="hidden" name="page" value="1" />
+            <input
+              type="hidden"
+              name="filterColumn"
+              value={filterColumn === '__none' ? '' : filterColumn}
+            />
+
+            <div className="flex items-end gap-2 md:col-span-3">
+              <Button type="submit">Apply filters</Button>
+              <Button variant="outline" asChild>
+                <Link
+                  to="/backend/$table"
+                  params={{ table: data.name }}
+                  search={{
+                    page: 1,
+                    pageSize: 50,
+                    query: '',
+                    filterColumn: '',
+                    filterValue: '',
+                  }}
+                >
+                  Reset
+                </Link>
+              </Button>
+            </div>
+          </form>
+
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap gap-2">
+              {data.columns.map((column) => (
+                <Badge key={column} variant="outline">
+                  {column}
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={data.page <= 1}
+                asChild={data.page > 1}
+              >
+                {data.page > 1 ? (
+                  <Link
+                    to="/backend/$table"
+                    params={{ table: data.name }}
+                    search={{ ...search, page: data.page - 1 }}
+                  >
+                    <ArrowLeft className="mr-1 size-4" /> Previous
+                  </Link>
+                ) : (
+                  <span>
+                    <ArrowLeft className="mr-1 inline size-4" /> Previous
+                  </span>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={data.page >= data.totalPages}
+                asChild={data.page < data.totalPages}
+              >
+                {data.page < data.totalPages ? (
+                  <Link
+                    to="/backend/$table"
+                    params={{ table: data.name }}
+                    search={{ ...search, page: data.page + 1 }}
+                  >
+                    Next <ArrowRight className="ml-1 size-4" />
+                  </Link>
+                ) : (
+                  <span>
+                    Next <ArrowRight className="ml-1 inline size-4" />
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Rows</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No rows found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {data.columns.map((column) => (
+                      <TableHead key={column}>{column}</TableHead>
+                    ))}
+                    <TableHead>Related</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.rows.map((row, rowIndex) => (
+                    <TableRow key={`${data.name}-${rowIndex}`}>
+                      {data.columns.map((column) => (
+                        <TableCell
+                          key={`${rowIndex}-${column}`}
+                          className="max-w-[220px] truncate"
+                        >
+                          {row[column] ?? ''}
+                        </TableCell>
+                      ))}
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          {getRelatedLinks(data.name, row).map(
+                            (link, linkIndex) => (
+                              <Button
+                                key={`${data.name}-${rowIndex}-${linkIndex}`}
+                                asChild
+                                size="sm"
+                                variant="secondary"
+                              >
+                                <Link
+                                  to="/backend/$table"
+                                  params={{ table: link.table }}
+                                  search={{
+                                    page: 1,
+                                    pageSize: 50,
+                                    query: '',
+                                    filterColumn: link.filterColumn,
+                                    filterValue: link.filterValue,
+                                  }}
+                                >
+                                  {link.label}
+                                </Link>
+                              </Button>
+                            ),
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </main>
   )
 }

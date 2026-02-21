@@ -25,12 +25,6 @@ type CandidateInstrument = {
   marketCap: number
 }
 
-type YahooQuote = {
-  marketCap?: number
-  longName?: string
-  shortName?: string
-}
-
 const DEFAULT_SYMBOL_LIMIT = 200
 
 async function withRetries<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
@@ -65,17 +59,27 @@ async function fetchCandidateInstrument(
   symbol: string,
 ): Promise<CandidateInstrument | null> {
   try {
-    const quote = (await withRetries(() =>
+    const quoteRaw = await withRetries<unknown>(() =>
       yahooFinance.quote(symbol),
-    )) as YahooQuote
+    )
+
+    if (typeof quoteRaw !== 'object' || quoteRaw === null) {
+      return null
+    }
+
+    const quote = quoteRaw as Record<string, unknown>
     const marketCap = quote.marketCap
     if (typeof marketCap !== 'number' || marketCap <= 0) {
       return null
     }
 
+    const longName = typeof quote.longName === 'string' ? quote.longName : null
+    const shortName =
+      typeof quote.shortName === 'string' ? quote.shortName : null
+
     return {
       symbol,
-      name: quote.longName ?? quote.shortName ?? symbol,
+      name: longName ?? shortName ?? symbol,
       marketCap,
     }
   } catch {

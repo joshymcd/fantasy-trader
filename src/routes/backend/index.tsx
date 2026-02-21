@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 import { count, desc, eq } from 'drizzle-orm'
 
+import { Button } from '../../components/ui/button'
 import {
   getBackendSystemStats,
   getBackendTableOverview,
@@ -794,7 +795,7 @@ function BackendIndexPage() {
   }
 
   return (
-    <main className="p-6">
+    <main className="mx-auto min-h-screen w-full max-w-7xl space-y-6 bg-background p-6">
       <h1>Backend Debug Console</h1>
       <p>Basic read-only views of database tables for development debugging.</p>
       <p>Snapshot generated at: {data.generatedAt}</p>
@@ -817,7 +818,7 @@ function BackendIndexPage() {
 
       <h2>Backend actions</h2>
 
-      <section>
+      <section className="rounded-xl border bg-card p-5">
         <h3>Populate trading calendar</h3>
         <form onSubmit={handlePopulateCalendar}>
           <label>
@@ -830,14 +831,14 @@ function BackendIndexPage() {
               onChange={(event) => setCalendarYear(event.target.value)}
             />
           </label>{' '}
-          <button type="submit" disabled={isCalendarLoading}>
+          <Button type="submit" disabled={isCalendarLoading}>
             {isCalendarLoading ? 'Running...' : 'Populate year'}
-          </button>
+          </Button>
         </form>
         <p>{calendarStatus}</p>
       </section>
 
-      <section>
+      <section className="rounded-xl border bg-card p-5">
         <h3>Sync prices for instrument universe</h3>
         <form onSubmit={handleSyncPrices}>
           <label>
@@ -848,14 +849,14 @@ function BackendIndexPage() {
               onChange={(event) => setPriceDate(event.target.value)}
             />
           </label>{' '}
-          <button type="submit" disabled={isPriceLoading}>
+          <Button type="submit" disabled={isPriceLoading}>
             {isPriceLoading ? 'Running...' : 'Sync prices'}
-          </button>
+          </Button>
         </form>
         <p>{priceStatus}</p>
       </section>
 
-      <section>
+      <section className="rounded-xl border bg-card p-5">
         <h3>Season tools</h3>
 
         <h4>Create season</h4>
@@ -919,9 +920,9 @@ function BackendIndexPage() {
               />
             </label>
           </p>
-          <button type="submit" disabled={isSeasonCreateLoading}>
+          <Button type="submit" disabled={isSeasonCreateLoading}>
             {isSeasonCreateLoading ? 'Running...' : 'Create season'}
-          </button>
+          </Button>
           <p>{seasonCreateStatus}</p>
         </form>
 
@@ -977,18 +978,18 @@ function BackendIndexPage() {
                   />
                 </label>
               </p>
-              <button type="submit" disabled={isSeasonPopulateLoading}>
+              <Button type="submit" disabled={isSeasonPopulateLoading}>
                 {isSeasonPopulateLoading
                   ? 'Running...'
                   : 'Populate instruments'}
-              </button>
+              </Button>
               <p>{seasonPopulateStatus}</p>
             </form>
 
             <form onSubmit={handleActivateSeason}>
-              <button type="submit" disabled={isSeasonActivateLoading}>
+              <Button type="submit" disabled={isSeasonActivateLoading}>
                 {isSeasonActivateLoading ? 'Running...' : 'Activate season'}
-              </button>
+              </Button>
               <p>{seasonActivateStatus}</p>
             </form>
           </>
@@ -1035,7 +1036,7 @@ function BackendIndexPage() {
         )}
       </section>
 
-      <section>
+      <section className="rounded-xl border bg-card p-5">
         <h3>League and team tools</h3>
 
         <h4>Create league</h4>
@@ -1092,9 +1093,9 @@ function BackendIndexPage() {
                 </select>
               </label>
             </p>
-            <button type="submit" disabled={isLeagueCreateLoading}>
+            <Button type="submit" disabled={isLeagueCreateLoading}>
               {isLeagueCreateLoading ? 'Running...' : 'Create league'}
-            </button>
+            </Button>
             <p>{leagueCreateStatus}</p>
           </form>
         )}
@@ -1138,9 +1139,9 @@ function BackendIndexPage() {
                 />
               </label>
             </p>
-            <button type="submit" disabled={isTeamCreateLoading}>
+            <Button type="submit" disabled={isTeamCreateLoading}>
               {isTeamCreateLoading ? 'Running...' : 'Create team'}
-            </button>
+            </Button>
             <p>{teamCreateStatus}</p>
           </form>
         )}
@@ -1176,7 +1177,7 @@ function BackendIndexPage() {
         )}
       </section>
 
-      <section>
+      <section className="rounded-xl border bg-card p-5">
         <h3>Scoring tools</h3>
         {teamOptions.length === 0 ? (
           <p>No teams found yet. Create a league and team first.</p>
@@ -1218,9 +1219,9 @@ function BackendIndexPage() {
                 />{' '}
                 Force recalculate
               </label>{' '}
-              <button type="submit" disabled={isScoreLoading}>
+              <Button type="submit" disabled={isScoreLoading}>
                 {isScoreLoading ? 'Running...' : 'Calculate day score'}
-              </button>
+              </Button>
               <p>{scoreStatus}</p>
             </form>
 
@@ -1252,9 +1253,9 @@ function BackendIndexPage() {
                 />{' '}
                 Force recalculate
               </label>{' '}
-              <button type="submit" disabled={isRangeLoading}>
+              <Button type="submit" disabled={isRangeLoading}>
                 {isRangeLoading ? 'Running...' : 'Backfill range'}
-              </button>
+              </Button>
               <p>{rangeStatus}</p>
             </form>
 
@@ -1278,9 +1279,9 @@ function BackendIndexPage() {
                   onChange={(event) => setInvalidateToDate(event.target.value)}
                 />
               </label>{' '}
-              <button type="submit" disabled={isInvalidateLoading}>
+              <Button type="submit" disabled={isInvalidateLoading}>
                 {isInvalidateLoading ? 'Running...' : 'Invalidate cache'}
-              </button>
+              </Button>
               <p>{invalidateStatus}</p>
             </form>
 
@@ -1294,14 +1295,14 @@ function BackendIndexPage() {
                   onChange={(event) => setDebugDate(event.target.value)}
                 />
               </label>{' '}
-              <button type="submit" disabled={isDebugLoading}>
+              <Button type="submit" disabled={isDebugLoading}>
                 {isDebugLoading ? 'Running...' : 'Generate snapshot'}
-              </button>
+              </Button>
               <p>{debugStatus}</p>
             </form>
 
             {debugSnapshot ? (
-              <section>
+              <section className="rounded-lg border bg-muted/40 p-4">
                 <h4>Snapshot output</h4>
                 <p>
                   Team: {debugSnapshot.teamId} | Date: {debugSnapshot.date} |
