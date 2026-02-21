@@ -10,8 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
-import { Route as DemoBetterAuthRouteImport } from './routes/demo/better-auth'
+import { Route as BackendIndexRouteImport } from './routes/backend/index'
+import { Route as BackendTableRouteImport } from './routes/backend/$table'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -19,14 +19,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
-  id: '/demo/drizzle',
-  path: '/demo/drizzle',
+const BackendIndexRoute = BackendIndexRouteImport.update({
+  id: '/backend/',
+  path: '/backend/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoBetterAuthRoute = DemoBetterAuthRouteImport.update({
-  id: '/demo/better-auth',
-  path: '/demo/better-auth',
+const BackendTableRoute = BackendTableRouteImport.update({
+  id: '/backend/$table',
+  path: '/backend/$table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -37,35 +37,35 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
+  '/backend/$table': typeof BackendTableRoute
+  '/backend/': typeof BackendIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
+  '/backend/$table': typeof BackendTableRoute
+  '/backend': typeof BackendIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
+  '/backend/$table': typeof BackendTableRoute
+  '/backend/': typeof BackendIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/demo/better-auth' | '/demo/drizzle' | '/api/auth/$'
+  fullPaths: '/' | '/backend/$table' | '/backend/' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/demo/better-auth' | '/demo/drizzle' | '/api/auth/$'
-  id: '__root__' | '/' | '/demo/better-auth' | '/demo/drizzle' | '/api/auth/$'
+  to: '/' | '/backend/$table' | '/backend' | '/api/auth/$'
+  id: '__root__' | '/' | '/backend/$table' | '/backend/' | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DemoBetterAuthRoute: typeof DemoBetterAuthRoute
-  DemoDrizzleRoute: typeof DemoDrizzleRoute
+  BackendTableRoute: typeof BackendTableRoute
+  BackendIndexRoute: typeof BackendIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -78,18 +78,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/drizzle': {
-      id: '/demo/drizzle'
-      path: '/demo/drizzle'
-      fullPath: '/demo/drizzle'
-      preLoaderRoute: typeof DemoDrizzleRouteImport
+    '/backend/': {
+      id: '/backend/'
+      path: '/backend'
+      fullPath: '/backend/'
+      preLoaderRoute: typeof BackendIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/better-auth': {
-      id: '/demo/better-auth'
-      path: '/demo/better-auth'
-      fullPath: '/demo/better-auth'
-      preLoaderRoute: typeof DemoBetterAuthRouteImport
+    '/backend/$table': {
+      id: '/backend/$table'
+      path: '/backend/$table'
+      fullPath: '/backend/$table'
+      preLoaderRoute: typeof BackendTableRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -104,8 +104,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DemoBetterAuthRoute: DemoBetterAuthRoute,
-  DemoDrizzleRoute: DemoDrizzleRoute,
+  BackendTableRoute: BackendTableRoute,
+  BackendIndexRoute: BackendIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
