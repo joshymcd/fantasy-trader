@@ -43,6 +43,11 @@ import { getHoldingsAtDate, validateRoster } from '../../lib/game/holdings'
 import { ensurePricesForInstrumentUniverse } from '../../lib/game/market-data'
 import { createLeague, createTeam, listLeagues } from '../../lib/game/league'
 import {
+  getAvailableInstruments,
+  selectPortfolio,
+  validatePortfolio,
+} from '../../lib/game/draft'
+import {
   activateSeason,
   createSeason,
   listSeasons,
@@ -63,6 +68,12 @@ const parseIsoDate = (value: string) => {
 
   return parsed
 }
+
+const parseSymbolCsv = (value: string) =>
+  value
+    .split(',')
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter(Boolean)
 
 const getTables = createServerFn({ method: 'GET' }).handler(async () => {
   const tables = await getBackendTableOverview()
@@ -227,6 +238,58 @@ const runCreateTeam = createServerFn({ method: 'POST' })
     })
   })
 
+const runValidatePortfolioSelection = createServerFn({ method: 'POST' })
+  .inputValidator((payload: { teamId: string; symbolsCsv: string }) => payload)
+  .handler(async ({ data }) => {
+    const symbols = parseSymbolCsv(data.symbolsCsv)
+
+    const contextRows = await db
+      .select({ seasonId: leagues.seasonId, leagueId: leagues.id })
+      .from(teams)
+      .innerJoin(leagues, eq(teams.leagueId, leagues.id))
+      .where(eq(teams.id, data.teamId))
+      .limit(1)
+
+    const context = contextRows[0]
+    if (!context) {
+      throw new Error('Team not found')
+    }
+
+    return validatePortfolio({
+      symbols,
+      seasonId: context.seasonId,
+      leagueId: context.leagueId,
+      teamId: data.teamId,
+    })
+  })
+
+const runSubmitPortfolioSelection = createServerFn({ method: 'POST' })
+  .inputValidator((payload: { teamId: string; symbolsCsv: string }) => payload)
+  .handler(async ({ data }) => {
+    const symbols = parseSymbolCsv(data.symbolsCsv)
+
+    return selectPortfolio({
+      teamId: data.teamId,
+      symbols,
+    })
+  })
+
+const runGetAvailableForLeague = createServerFn({ method: 'GET' })
+  .inputValidator((payload: { leagueId: string }) => payload)
+  .handler(async ({ data }) => {
+    const availableInstruments = await getAvailableInstruments(data.leagueId)
+
+    return {
+      leagueId: data.leagueId,
+      instrumentCount: availableInstruments.length,
+      availableCount: availableInstruments.filter((item) => item.isAvailable)
+        .length,
+      unavailableCount: availableInstruments.filter((item) => !item.isAvailable)
+        .length,
+      sample: availableInstruments.slice(0, 50),
+    }
+  })
+
 const runCalculateDayScore = createServerFn({ method: 'POST' })
   .inputValidator(
     (payload: { teamId: string; date: string; forceRecalculate: boolean }) =>
@@ -373,6 +436,29 @@ function BackendIndexPage() {
   const [teamUserId, setTeamUserId] = useState('dev-user-1')
   const [teamName, setTeamName] = useState('My Team')
   const [teamCreateStatus, setTeamCreateStatus] = useState('')
+  const [portfolioTeamId, setPortfolioTeamId] = useState('')
+  const [portfolioLeagueId, setPortfolioLeagueId] = useState('')
+  const [portfolioSymbolsCsv, setPortfolioSymbolsCsv] = useState('')
+  const [portfolioValidateStatus, setPortfolioValidateStatus] = useState('')
+  const [portfolioSubmitStatus, setPortfolioSubmitStatus] = useState('')
+  const [portfolioAvailableStatus, setPortfolioAvailableStatus] = useState('')
+  const [portfolioValidationResult, setPortfolioValidationResult] = useState<{
+    isValid: boolean
+    errors: string[]
+    budget: number
+    totalCost: number
+    tierCounts: Record<string, number>
+  } | null>(null)
+  const [portfolioAvailableSample, setPortfolioAvailableSample] = useState<
+    Array<{
+      symbol: string
+      name: string
+      tier: number
+      tierCost: number
+      isAvailable: boolean
+      takenByTeamId: string | null
+    }>
+  >([])
   const [scoreStatus, setScoreStatus] = useState('')
   const [rangeStatus, setRangeStatus] = useState('')
   const [invalidateStatus, setInvalidateStatus] = useState('')
@@ -384,6 +470,12 @@ function BackendIndexPage() {
   const [isSeasonActivateLoading, setIsSeasonActivateLoading] = useState(false)
   const [isLeagueCreateLoading, setIsLeagueCreateLoading] = useState(false)
   const [isTeamCreateLoading, setIsTeamCreateLoading] = useState(false)
+  const [isPortfolioValidateLoading, setIsPortfolioValidateLoading] =
+    useState(false)
+  const [isPortfolioSubmitLoading, setIsPortfolioSubmitLoading] =
+    useState(false)
+  const [isPortfolioAvailableLoading, setIsPortfolioAvailableLoading] =
+    useState(false)
   const [isScoreLoading, setIsScoreLoading] = useState(false)
   const [isRangeLoading, setIsRangeLoading] = useState(false)
   const [isInvalidateLoading, setIsInvalidateLoading] = useState(false)
@@ -416,6 +508,18 @@ function BackendIndexPage() {
       setTeamLeagueId(defaultLeagueId)
     }
   }, [teamLeagueId, defaultLeagueId])
+
+  useEffect(() => {
+    if (!portfolioTeamId && defaultTeamId) {
+      setPortfolioTeamId(defaultTeamId)
+    }
+  }, [portfolioTeamId, defaultTeamId])
+
+  useEffect(() => {
+    if (!portfolioLeagueId && defaultLeagueId) {
+      setPortfolioLeagueId(defaultLeagueId)
+    }
+  }, [portfolioLeagueId, defaultLeagueId])
 
   const [selectedTeamId, setSelectedTeamId] = useState(defaultTeamId)
   const [scoreDate, setScoreDate] = useState(defaultTargetDate)
@@ -678,6 +782,116 @@ function BackendIndexPage() {
       )
     } finally {
       setIsTeamCreateLoading(false)
+    }
+  }
+
+  const handleLoadAvailableForLeague = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    if (!portfolioLeagueId) {
+      setPortfolioAvailableStatus('Availability error: select a league first')
+      return
+    }
+
+    setIsPortfolioAvailableLoading(true)
+    setPortfolioAvailableStatus('Running...')
+
+    try {
+      const result = await runGetAvailableForLeague({
+        data: { leagueId: portfolioLeagueId },
+      })
+
+      setPortfolioAvailableSample(result.sample)
+      setPortfolioAvailableStatus(
+        `Loaded ${result.availableCount} available of ${result.instrumentCount} total instruments`,
+      )
+    } catch (error) {
+      setPortfolioAvailableStatus(
+        `Availability error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+      setPortfolioAvailableSample([])
+    } finally {
+      setIsPortfolioAvailableLoading(false)
+    }
+  }
+
+  const handleValidatePortfolio = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    if (!portfolioTeamId) {
+      setPortfolioValidateStatus('Validation error: select a team first')
+      return
+    }
+
+    setIsPortfolioValidateLoading(true)
+    setPortfolioValidateStatus('Running...')
+
+    try {
+      const result = await runValidatePortfolioSelection({
+        data: {
+          teamId: portfolioTeamId,
+          symbolsCsv: portfolioSymbolsCsv,
+        },
+      })
+
+      setPortfolioValidationResult({
+        isValid: result.isValid,
+        errors: result.errors,
+        budget: result.budget,
+        totalCost: result.totalCost,
+        tierCounts: result.tierCounts,
+      })
+
+      setPortfolioValidateStatus(
+        result.isValid
+          ? `Portfolio valid. Total cost ${result.totalCost}/${result.budget}`
+          : `Portfolio invalid with ${result.errors.length} error(s)`,
+      )
+    } catch (error) {
+      setPortfolioValidateStatus(
+        `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+      setPortfolioValidationResult(null)
+    } finally {
+      setIsPortfolioValidateLoading(false)
+    }
+  }
+
+  const handleSubmitPortfolio = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    if (!portfolioTeamId) {
+      setPortfolioSubmitStatus('Submit error: select a team first')
+      return
+    }
+
+    setIsPortfolioSubmitLoading(true)
+    setPortfolioSubmitStatus('Running...')
+
+    try {
+      const result = await runSubmitPortfolioSelection({
+        data: {
+          teamId: portfolioTeamId,
+          symbolsCsv: portfolioSymbolsCsv,
+        },
+      })
+
+      setPortfolioSubmitStatus(
+        `Portfolio submitted for team ${result.teamId}. League status now ${result.leagueStatus}`,
+      )
+      await router.invalidate()
+    } catch (error) {
+      setPortfolioSubmitStatus(
+        `Submit error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsPortfolioSubmitLoading(false)
     }
   }
 
@@ -1292,6 +1506,183 @@ function BackendIndexPage() {
                   </div>
                 )}
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Portfolio Selection Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Portfolio Selection (Phase 6)</CardTitle>
+              <CardDescription>
+                Validate and submit initial 8-symbol portfolios
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {teamOptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Create at least one team before selecting a portfolio.
+                </p>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Target Team</Label>
+                      <Select
+                        value={portfolioTeamId}
+                        onValueChange={setPortfolioTeamId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a team" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {teamOptions.map((team) => (
+                            <SelectItem key={team.teamId} value={team.teamId}>
+                              {team.teamName} - {team.leagueName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Availability League</Label>
+                      <Select
+                        value={portfolioLeagueId}
+                        onValueChange={setPortfolioLeagueId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a league" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leagueOptions.map((league) => (
+                            <SelectItem key={league.id} value={league.id}>
+                              {league.name} ({league.ownershipMode})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="portfolioSymbolsCsv">
+                      Symbols CSV (8 required)
+                    </Label>
+                    <Textarea
+                      id="portfolioSymbolsCsv"
+                      rows={3}
+                      placeholder="SHEL.L,AZN.L,HSBA.L,ULVR.L,BP.L,RIO.L,GSK.L,REL.L"
+                      value={portfolioSymbolsCsv}
+                      onChange={(event) =>
+                        setPortfolioSymbolsCsv(event.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <form onSubmit={handleLoadAvailableForLeague}>
+                      <Button
+                        type="submit"
+                        disabled={isPortfolioAvailableLoading}
+                      >
+                        {isPortfolioAvailableLoading
+                          ? 'Running...'
+                          : 'Load availability'}
+                      </Button>
+                    </form>
+
+                    <form onSubmit={handleValidatePortfolio}>
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        disabled={isPortfolioValidateLoading}
+                      >
+                        {isPortfolioValidateLoading
+                          ? 'Running...'
+                          : 'Validate portfolio'}
+                      </Button>
+                    </form>
+
+                    <form onSubmit={handleSubmitPortfolio}>
+                      <Button type="submit" disabled={isPortfolioSubmitLoading}>
+                        {isPortfolioSubmitLoading
+                          ? 'Running...'
+                          : 'Submit portfolio'}
+                      </Button>
+                    </form>
+                  </div>
+
+                  {portfolioAvailableStatus && (
+                    <p className="text-sm text-muted-foreground">
+                      {portfolioAvailableStatus}
+                    </p>
+                  )}
+                  {portfolioValidateStatus && (
+                    <p className="text-sm text-muted-foreground">
+                      {portfolioValidateStatus}
+                    </p>
+                  )}
+                  {portfolioSubmitStatus && (
+                    <p className="text-sm text-muted-foreground">
+                      {portfolioSubmitStatus}
+                    </p>
+                  )}
+
+                  {portfolioValidationResult && (
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <p className="text-sm">
+                        Valid: {String(portfolioValidationResult.isValid)} |
+                        Cost: {portfolioValidationResult.totalCost}/
+                        {portfolioValidationResult.budget}
+                      </p>
+                      <p className="text-sm">
+                        Tier counts:{' '}
+                        {JSON.stringify(portfolioValidationResult.tierCounts)}
+                      </p>
+                      {portfolioValidationResult.errors.length > 0 && (
+                        <ul className="list-disc pl-5 space-y-1 text-sm text-destructive">
+                          {portfolioValidationResult.errors.map((error) => (
+                            <li key={error}>{error}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  {portfolioAvailableSample.length > 0 && (
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Symbol</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Tier</TableHead>
+                            <TableHead>Cost</TableHead>
+                            <TableHead>Available</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {portfolioAvailableSample.map((row) => (
+                            <TableRow key={row.symbol}>
+                              <TableCell className="font-medium">
+                                {row.symbol}
+                              </TableCell>
+                              <TableCell>{row.name}</TableCell>
+                              <TableCell>{row.tier}</TableCell>
+                              <TableCell>{row.tierCost}</TableCell>
+                              <TableCell>
+                                {row.isAvailable
+                                  ? 'yes'
+                                  : `no (${row.takenByTeamId})`}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
