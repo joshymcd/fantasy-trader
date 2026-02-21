@@ -3,7 +3,35 @@ import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 import { count, desc, eq } from 'drizzle-orm'
 
+import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card'
+import { Checkbox } from '../../components/ui/checkbox'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { Separator } from '../../components/ui/separator'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
+import { Textarea } from '../../components/ui/textarea'
 import {
   getBackendSystemStats,
   getBackendTableOverview,
@@ -795,608 +823,959 @@ function BackendIndexPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl space-y-6 bg-background p-6">
-      <h1>Backend Debug Console</h1>
-      <p>Basic read-only views of database tables for development debugging.</p>
-      <p>Snapshot generated at: {data.generatedAt}</p>
-      <p>Total rows across tracked tables: {data.totalRows}</p>
+    <main className="mx-auto min-h-screen w-full max-w-7xl space-y-8 bg-background p-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Backend Debug Console
+        </h1>
+        <p className="text-muted-foreground">
+          Basic read-only views of database tables and administrative actions
+          for development debugging.
+        </p>
+        <div className="flex gap-4 text-sm text-muted-foreground mt-2">
+          <span>
+            Snapshot generated at: {new Date(data.generatedAt).toLocaleString()}
+          </span>
+          <span>
+            Total rows across tracked tables: {data.totalRows.toLocaleString()}
+          </span>
+        </div>
+      </div>
 
-      <h2>System stats</h2>
-      <ul>
-        <li>Trading days loaded: {data.systemStats.tradingDays}</li>
-        <li>Price rows loaded: {data.systemStats.priceRows}</li>
-        <li>
-          Distinct symbols loaded: {data.systemStats.distinctPriceSymbols}
-        </li>
-        <li>
-          Oldest loaded price date: {data.systemStats.oldestPriceDate ?? 'n/a'}
-        </li>
-        <li>
-          Latest loaded price date: {data.systemStats.latestPriceDate ?? 'n/a'}
-        </li>
-      </ul>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Trading Days</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.systemStats.tradingDays.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Price Rows</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.systemStats.priceRows.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Distinct Symbols
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.systemStats.distinctPriceSymbols.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Oldest Price Date
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.systemStats.oldestPriceDate ?? 'n/a'}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Latest Price Date
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.systemStats.latestPriceDate ?? 'n/a'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      <h2>Backend actions</h2>
+      <div className="grid gap-8 md:grid-cols-2">
+        <div className="space-y-8">
+          {/* System Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle>System Tools</CardTitle>
+              <CardDescription>Manage calendar and market data</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <form onSubmit={handlePopulateCalendar} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="calendarYear">
+                    Populate trading calendar year
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="calendarYear"
+                      type="number"
+                      min={2020}
+                      max={2100}
+                      value={calendarYear}
+                      onChange={(event) => setCalendarYear(event.target.value)}
+                    />
+                    <Button type="submit" disabled={isCalendarLoading}>
+                      {isCalendarLoading ? 'Running...' : 'Populate'}
+                    </Button>
+                  </div>
+                </div>
+                {calendarStatus && (
+                  <p className="text-sm text-muted-foreground">
+                    {calendarStatus}
+                  </p>
+                )}
+              </form>
 
-      <section className="rounded-xl border bg-card p-5">
-        <h3>Populate trading calendar</h3>
-        <form onSubmit={handlePopulateCalendar}>
-          <label>
-            Year{' '}
-            <input
-              type="number"
-              min={2020}
-              max={2100}
-              value={calendarYear}
-              onChange={(event) => setCalendarYear(event.target.value)}
-            />
-          </label>{' '}
-          <Button type="submit" disabled={isCalendarLoading}>
-            {isCalendarLoading ? 'Running...' : 'Populate year'}
-          </Button>
-        </form>
-        <p>{calendarStatus}</p>
-      </section>
+              <Separator />
 
-      <section className="rounded-xl border bg-card p-5">
-        <h3>Sync prices for instrument universe</h3>
-        <form onSubmit={handleSyncPrices}>
-          <label>
-            Target date (inclusive){' '}
-            <input
-              type="date"
-              value={priceDate}
-              onChange={(event) => setPriceDate(event.target.value)}
-            />
-          </label>{' '}
-          <Button type="submit" disabled={isPriceLoading}>
-            {isPriceLoading ? 'Running...' : 'Sync prices'}
-          </Button>
-        </form>
-        <p>{priceStatus}</p>
-      </section>
+              <form onSubmit={handleSyncPrices} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priceDate">
+                    Sync prices for instrument universe (target date)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="priceDate"
+                      type="date"
+                      value={priceDate}
+                      onChange={(event) => setPriceDate(event.target.value)}
+                    />
+                    <Button type="submit" disabled={isPriceLoading}>
+                      {isPriceLoading ? 'Running...' : 'Sync prices'}
+                    </Button>
+                  </div>
+                </div>
+                {priceStatus && (
+                  <p className="text-sm text-muted-foreground">{priceStatus}</p>
+                )}
+              </form>
+            </CardContent>
+          </Card>
 
-      <section className="rounded-xl border bg-card p-5">
-        <h3>Season tools</h3>
-
-        <h4>Create season</h4>
-        <form onSubmit={handleCreateSeason}>
-          <p>
-            <label>
-              Name{' '}
-              <input
-                type="text"
-                value={seasonName}
-                onChange={(event) => setSeasonName(event.target.value)}
-              />
-            </label>
-          </p>
-          <p>
-            <label>
-              Market{' '}
-              <input
-                type="text"
-                value={seasonMarket}
-                onChange={(event) => setSeasonMarket(event.target.value)}
-              />
-            </label>
-          </p>
-          <p>
-            <label>
-              Start date{' '}
-              <input
-                type="date"
-                value={seasonStartDate}
-                onChange={(event) => setSeasonStartDate(event.target.value)}
-              />
-            </label>{' '}
-            <label>
-              End date{' '}
-              <input
-                type="date"
-                value={seasonEndDate}
-                onChange={(event) => setSeasonEndDate(event.target.value)}
-              />
-            </label>{' '}
-            <label>
-              Trade deadline{' '}
-              <input
-                type="date"
-                value={seasonTradeDeadlineDate}
-                onChange={(event) =>
-                  setSeasonTradeDeadlineDate(event.target.value)
-                }
-              />
-            </label>
-          </p>
-          <p>
-            <label>
-              Budget{' '}
-              <input
-                type="number"
-                min={1}
-                value={seasonBudget}
-                onChange={(event) => setSeasonBudget(event.target.value)}
-              />
-            </label>
-          </p>
-          <Button type="submit" disabled={isSeasonCreateLoading}>
-            {isSeasonCreateLoading ? 'Running...' : 'Create season'}
-          </Button>
-          <p>{seasonCreateStatus}</p>
-        </form>
-
-        <h4>Populate and activate season</h4>
-        {seasonOptions.length === 0 ? (
-          <p>No seasons found. Create one first.</p>
-        ) : (
-          <>
-            <p>
-              <label>
-                Season{' '}
-                <select
-                  value={seasonActionSeasonId}
-                  onChange={(event) =>
-                    setSeasonActionSeasonId(event.target.value)
-                  }
+          {/* Season Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Season Tools</CardTitle>
+              <CardDescription>Create and manage game seasons</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <form onSubmit={handleCreateSeason} className="space-y-4">
+                <h4 className="text-sm font-medium">Create New Season</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="seasonName">Name</Label>
+                    <Input
+                      id="seasonName"
+                      value={seasonName}
+                      onChange={(event) => setSeasonName(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="seasonMarket">Market</Label>
+                    <Input
+                      id="seasonMarket"
+                      value={seasonMarket}
+                      onChange={(event) => setSeasonMarket(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="seasonStartDate">Start Date</Label>
+                    <Input
+                      id="seasonStartDate"
+                      type="date"
+                      value={seasonStartDate}
+                      onChange={(event) =>
+                        setSeasonStartDate(event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="seasonEndDate">End Date</Label>
+                    <Input
+                      id="seasonEndDate"
+                      type="date"
+                      value={seasonEndDate}
+                      onChange={(event) => setSeasonEndDate(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="seasonTradeDeadlineDate">
+                      Trade Deadline
+                    </Label>
+                    <Input
+                      id="seasonTradeDeadlineDate"
+                      type="date"
+                      value={seasonTradeDeadlineDate}
+                      onChange={(event) =>
+                        setSeasonTradeDeadlineDate(event.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="seasonBudget">Budget</Label>
+                    <Input
+                      id="seasonBudget"
+                      type="number"
+                      min={1}
+                      value={seasonBudget}
+                      onChange={(event) => setSeasonBudget(event.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isSeasonCreateLoading}
+                  className="w-full"
                 >
-                  {seasonOptions.map((season) => (
-                    <option key={season.id} value={season.id}>
-                      {season.name} ({season.status}) instruments:{' '}
-                      {season.instrumentCount}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </p>
+                  {isSeasonCreateLoading ? 'Running...' : 'Create Season'}
+                </Button>
+                {seasonCreateStatus && (
+                  <p className="text-sm text-muted-foreground">
+                    {seasonCreateStatus}
+                  </p>
+                )}
+              </form>
 
-            <form onSubmit={handlePopulateSeason}>
-              <p>
-                <label>
-                  Symbol limit{' '}
-                  <input
-                    type="number"
-                    min={5}
-                    max={500}
-                    value={seasonSymbolLimit}
-                    onChange={(event) =>
-                      setSeasonSymbolLimit(event.target.value)
-                    }
-                  />
-                </label>
-              </p>
-              <p>
-                <label>
-                  Symbols CSV (optional, defaults to built-in UK set){' '}
-                  <textarea
-                    value={seasonSymbolsCsv}
-                    onChange={(event) =>
-                      setSeasonSymbolsCsv(event.target.value)
-                    }
-                    rows={3}
-                    cols={80}
-                  />
-                </label>
-              </p>
-              <Button type="submit" disabled={isSeasonPopulateLoading}>
-                {isSeasonPopulateLoading
-                  ? 'Running...'
-                  : 'Populate instruments'}
-              </Button>
-              <p>{seasonPopulateStatus}</p>
-            </form>
+              <Separator />
 
-            <form onSubmit={handleActivateSeason}>
-              <Button type="submit" disabled={isSeasonActivateLoading}>
-                {isSeasonActivateLoading ? 'Running...' : 'Activate season'}
-              </Button>
-              <p>{seasonActivateStatus}</p>
-            </form>
-          </>
-        )}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">
+                  Populate & Activate Season
+                </h4>
+                {seasonOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No seasons found. Create one first.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Target Season</Label>
+                      <Select
+                        value={seasonActionSeasonId}
+                        onValueChange={setSeasonActionSeasonId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a season" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {seasonOptions.map((season) => (
+                            <SelectItem key={season.id} value={season.id}>
+                              {season.name} ({season.status}) -{' '}
+                              {season.instrumentCount} inst.
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-        <h4>Season summary</h4>
-        {seasonOptions.length === 0 ? (
-          <p>No seasons to display.</p>
-        ) : (
-          <table border={1} cellPadding={6} cellSpacing={0}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Market</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Trade Deadline</th>
-                <th>Budget</th>
-                <th>Instruments</th>
-              </tr>
-            </thead>
-            <tbody>
-              {seasonOptions.map((season) => (
-                <tr key={season.id}>
-                  <td>{season.name}</td>
-                  <td>{season.status}</td>
-                  <td>{season.market}</td>
-                  <td>
-                    {new Date(season.startDate).toISOString().slice(0, 10)}
-                  </td>
-                  <td>{new Date(season.endDate).toISOString().slice(0, 10)}</td>
-                  <td>
-                    {new Date(season.tradeDeadlineDate)
-                      .toISOString()
-                      .slice(0, 10)}
-                  </td>
-                  <td>{season.budget}</td>
-                  <td>{season.instrumentCount}</td>
-                </tr>
+                    <form
+                      onSubmit={handlePopulateSeason}
+                      className="space-y-4 rounded-lg border p-4"
+                    >
+                      <div className="space-y-2">
+                        <Label htmlFor="seasonSymbolLimit">Symbol Limit</Label>
+                        <Input
+                          id="seasonSymbolLimit"
+                          type="number"
+                          min={5}
+                          max={500}
+                          value={seasonSymbolLimit}
+                          onChange={(event) =>
+                            setSeasonSymbolLimit(event.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="seasonSymbolsCsv">
+                          Symbols CSV (optional, defaults to UK set)
+                        </Label>
+                        <Textarea
+                          id="seasonSymbolsCsv"
+                          value={seasonSymbolsCsv}
+                          onChange={(event) =>
+                            setSeasonSymbolsCsv(event.target.value)
+                          }
+                          rows={3}
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        disabled={isSeasonPopulateLoading}
+                        className="w-full"
+                      >
+                        {isSeasonPopulateLoading
+                          ? 'Running...'
+                          : 'Populate Instruments'}
+                      </Button>
+                      {seasonPopulateStatus && (
+                        <p className="text-sm text-muted-foreground">
+                          {seasonPopulateStatus}
+                        </p>
+                      )}
+                    </form>
+
+                    <form onSubmit={handleActivateSeason}>
+                      <Button
+                        type="submit"
+                        variant="default"
+                        disabled={isSeasonActivateLoading}
+                        className="w-full"
+                      >
+                        {isSeasonActivateLoading
+                          ? 'Running...'
+                          : 'Activate Season'}
+                      </Button>
+                      {seasonActivateStatus && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {seasonActivateStatus}
+                        </p>
+                      )}
+                    </form>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-8">
+          {/* League & Team Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle>League & Team Tools</CardTitle>
+              <CardDescription>Manage leagues and user teams</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <form onSubmit={handleCreateLeague} className="space-y-4">
+                <h4 className="text-sm font-medium">Create League</h4>
+                {seasonOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Create a season first.
+                  </p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Season</Label>
+                      <Select
+                        value={leagueSeasonId}
+                        onValueChange={setLeagueSeasonId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a season" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {seasonOptions.map((season) => (
+                            <SelectItem key={season.id} value={season.id}>
+                              {season.name} ({season.status})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="leagueName">League Name</Label>
+                      <Input
+                        id="leagueName"
+                        value={leagueName}
+                        onChange={(event) => setLeagueName(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="leagueCreatorId">Creator User ID</Label>
+                      <Input
+                        id="leagueCreatorId"
+                        value={leagueCreatorId}
+                        onChange={(event) =>
+                          setLeagueCreatorId(event.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Ownership Mode</Label>
+                      <Select
+                        value={leagueOwnershipMode}
+                        onValueChange={(v) => setLeagueOwnershipMode(v as any)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="UNIQUE">UNIQUE</SelectItem>
+                          <SelectItem value="DUPLICATES">DUPLICATES</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isLeagueCreateLoading}
+                      className="sm:col-span-2"
+                    >
+                      {isLeagueCreateLoading ? 'Running...' : 'Create League'}
+                    </Button>
+                    {leagueCreateStatus && (
+                      <p className="text-sm text-muted-foreground sm:col-span-2">
+                        {leagueCreateStatus}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form>
+
+              <Separator />
+
+              <form onSubmit={handleCreateTeam} className="space-y-4">
+                <h4 className="text-sm font-medium">Create Team</h4>
+                {leagueOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Create a league first.
+                  </p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>League</Label>
+                      <Select
+                        value={teamLeagueId}
+                        onValueChange={setTeamLeagueId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a league" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leagueOptions.map((league) => (
+                            <SelectItem key={league.id} value={league.id}>
+                              {league.name} ({league.ownershipMode}) -{' '}
+                              {league.teamCount} teams
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="teamUserId">User ID</Label>
+                      <Input
+                        id="teamUserId"
+                        value={teamUserId}
+                        onChange={(event) => setTeamUserId(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="teamName">Team Name</Label>
+                      <Input
+                        id="teamName"
+                        value={teamName}
+                        onChange={(event) => setTeamName(event.target.value)}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isTeamCreateLoading}
+                      className="sm:col-span-2"
+                    >
+                      {isTeamCreateLoading ? 'Running...' : 'Create Team'}
+                    </Button>
+                    {teamCreateStatus && (
+                      <p className="text-sm text-muted-foreground sm:col-span-2">
+                        {teamCreateStatus}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Scoring Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Scoring Tools</CardTitle>
+              <CardDescription>Calculate and debug team scores</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {teamOptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No teams found yet. Create a league and team first.
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Target Team</Label>
+                    <Select
+                      value={selectedTeamId}
+                      onValueChange={setSelectedTeamId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamOptions.map((team) => (
+                          <SelectItem key={team.teamId} value={team.teamId}>
+                            {team.teamName} ({team.teamId}) - {team.leagueName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-4 rounded-lg border p-4">
+                    <h4 className="text-sm font-medium">Calculate One Day</h4>
+                    <form
+                      onSubmit={handleCalculateDayScore}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-end gap-4">
+                        <div className="space-y-2 flex-1">
+                          <Label htmlFor="scoreDate">Date</Label>
+                          <Input
+                            id="scoreDate"
+                            type="date"
+                            value={scoreDate}
+                            onChange={(event) =>
+                              setScoreDate(event.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2 pb-2">
+                          <Checkbox
+                            id="forceRecalculateDay"
+                            checked={forceRecalculateDay}
+                            onCheckedChange={(checked) =>
+                              setForceRecalculateDay(checked as boolean)
+                            }
+                          />
+                          <Label
+                            htmlFor="forceRecalculateDay"
+                            className="font-normal"
+                          >
+                            Force
+                          </Label>
+                        </div>
+                        <Button
+                          type="submit"
+                          variant="secondary"
+                          disabled={isScoreLoading}
+                        >
+                          {isScoreLoading ? 'Running...' : 'Calculate'}
+                        </Button>
+                      </div>
+                      {scoreStatus && (
+                        <p className="text-sm text-muted-foreground">
+                          {scoreStatus}
+                        </p>
+                      )}
+                    </form>
+                  </div>
+
+                  <div className="grid gap-4 rounded-lg border p-4">
+                    <h4 className="text-sm font-medium">Backfill Range</h4>
+                    <form
+                      onSubmit={handleCalculateRangeScores}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="rangeStartDate">Start Date</Label>
+                          <Input
+                            id="rangeStartDate"
+                            type="date"
+                            value={rangeStartDate}
+                            onChange={(event) =>
+                              setRangeStartDate(event.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="rangeEndDate">End Date</Label>
+                          <Input
+                            id="rangeEndDate"
+                            type="date"
+                            value={rangeEndDate}
+                            onChange={(event) =>
+                              setRangeEndDate(event.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="forceRecalculateRange"
+                            checked={forceRecalculateRange}
+                            onCheckedChange={(checked) =>
+                              setForceRecalculateRange(checked as boolean)
+                            }
+                          />
+                          <Label
+                            htmlFor="forceRecalculateRange"
+                            className="font-normal"
+                          >
+                            Force recalculate
+                          </Label>
+                        </div>
+                        <Button
+                          type="submit"
+                          variant="secondary"
+                          disabled={isRangeLoading}
+                        >
+                          {isRangeLoading ? 'Running...' : 'Backfill'}
+                        </Button>
+                      </div>
+                      {rangeStatus && (
+                        <p className="text-sm text-muted-foreground">
+                          {rangeStatus}
+                        </p>
+                      )}
+                    </form>
+                  </div>
+
+                  <div className="grid gap-4 rounded-lg border p-4">
+                    <h4 className="text-sm font-medium">Invalidate Cache</h4>
+                    <form
+                      onSubmit={handleInvalidateScores}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="invalidateFromDate">From Date</Label>
+                          <Input
+                            id="invalidateFromDate"
+                            type="date"
+                            value={invalidateFromDate}
+                            onChange={(event) =>
+                              setInvalidateFromDate(event.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="invalidateToDate">To Date</Label>
+                          <Input
+                            id="invalidateToDate"
+                            type="date"
+                            value={invalidateToDate}
+                            onChange={(event) =>
+                              setInvalidateToDate(event.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="submit"
+                        variant="destructive"
+                        disabled={isInvalidateLoading}
+                        className="w-full"
+                      >
+                        {isInvalidateLoading
+                          ? 'Running...'
+                          : 'Invalidate Cache'}
+                      </Button>
+                      {invalidateStatus && (
+                        <p className="text-sm text-muted-foreground">
+                          {invalidateStatus}
+                        </p>
+                      )}
+                    </form>
+                  </div>
+
+                  <div className="grid gap-4 rounded-lg border p-4">
+                    <h4 className="text-sm font-medium">Debug Snapshot</h4>
+                    <form
+                      onSubmit={handleRunDebugSnapshot}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-end gap-4">
+                        <div className="space-y-2 flex-1">
+                          <Label htmlFor="debugDate">Snapshot Date</Label>
+                          <Input
+                            id="debugDate"
+                            type="date"
+                            value={debugDate}
+                            onChange={(event) =>
+                              setDebugDate(event.target.value)
+                            }
+                          />
+                        </div>
+                        <Button
+                          type="submit"
+                          variant="secondary"
+                          disabled={isDebugLoading}
+                        >
+                          {isDebugLoading ? 'Running...' : 'Generate'}
+                        </Button>
+                      </div>
+                      {debugStatus && (
+                        <p className="text-sm text-muted-foreground">
+                          {debugStatus}
+                        </p>
+                      )}
+                    </form>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Summaries & Tables */}
+      <div className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Database Tables</CardTitle>
+            <CardDescription>Direct access to raw table data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {tables.map((table) => (
+                <Button
+                  key={table.name}
+                  variant="outline"
+                  className="justify-between h-auto py-3"
+                  asChild
+                >
+                  <Link
+                    to="/backend/$table"
+                    params={{ table: table.name }}
+                    search={{
+                      page: 1,
+                      pageSize: 50,
+                      query: '',
+                      filterColumn: '',
+                      filterValue: '',
+                    }}
+                  >
+                    <span className="truncate">{table.name}</span>
+                    <Badge variant="secondary" className="ml-2 shrink-0">
+                      {table.rowCount}
+                    </Badge>
+                  </Link>
+                </Button>
               ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+            </div>
+          </CardContent>
+        </Card>
 
-      <section className="rounded-xl border bg-card p-5">
-        <h3>League and team tools</h3>
-
-        <h4>Create league</h4>
-        {seasonOptions.length === 0 ? (
-          <p>Create a season first.</p>
-        ) : (
-          <form onSubmit={handleCreateLeague}>
-            <p>
-              <label>
-                Season{' '}
-                <select
-                  value={leagueSeasonId}
-                  onChange={(event) => setLeagueSeasonId(event.target.value)}
-                >
-                  {seasonOptions.map((season) => (
-                    <option key={season.id} value={season.id}>
-                      {season.name} ({season.status})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </p>
-            <p>
-              <label>
-                League name{' '}
-                <input
-                  type="text"
-                  value={leagueName}
-                  onChange={(event) => setLeagueName(event.target.value)}
-                />
-              </label>
-            </p>
-            <p>
-              <label>
-                Creator user id{' '}
-                <input
-                  type="text"
-                  value={leagueCreatorId}
-                  onChange={(event) => setLeagueCreatorId(event.target.value)}
-                />
-              </label>{' '}
-              <label>
-                Ownership mode{' '}
-                <select
-                  value={leagueOwnershipMode}
-                  onChange={(event) =>
-                    setLeagueOwnershipMode(
-                      event.target.value as 'UNIQUE' | 'DUPLICATES',
-                    )
-                  }
-                >
-                  <option value="UNIQUE">UNIQUE</option>
-                  <option value="DUPLICATES">DUPLICATES</option>
-                </select>
-              </label>
-            </p>
-            <Button type="submit" disabled={isLeagueCreateLoading}>
-              {isLeagueCreateLoading ? 'Running...' : 'Create league'}
-            </Button>
-            <p>{leagueCreateStatus}</p>
-          </form>
-        )}
-
-        <h4>Create team</h4>
-        {leagueOptions.length === 0 ? (
-          <p>Create a league first.</p>
-        ) : (
-          <form onSubmit={handleCreateTeam}>
-            <p>
-              <label>
-                League{' '}
-                <select
-                  value={teamLeagueId}
-                  onChange={(event) => setTeamLeagueId(event.target.value)}
-                >
-                  {leagueOptions.map((league) => (
-                    <option key={league.id} value={league.id}>
-                      {league.name} ({league.ownershipMode}) teams:{' '}
-                      {league.teamCount}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </p>
-            <p>
-              <label>
-                User id{' '}
-                <input
-                  type="text"
-                  value={teamUserId}
-                  onChange={(event) => setTeamUserId(event.target.value)}
-                />
-              </label>{' '}
-              <label>
-                Team name{' '}
-                <input
-                  type="text"
-                  value={teamName}
-                  onChange={(event) => setTeamName(event.target.value)}
-                />
-              </label>
-            </p>
-            <Button type="submit" disabled={isTeamCreateLoading}>
-              {isTeamCreateLoading ? 'Running...' : 'Create team'}
-            </Button>
-            <p>{teamCreateStatus}</p>
-          </form>
-        )}
-
-        <h4>League summary</h4>
-        {leagueOptions.length === 0 ? (
-          <p>No leagues to display.</p>
-        ) : (
-          <table border={1} cellPadding={6} cellSpacing={0}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Season</th>
-                <th>Ownership</th>
-                <th>Creator</th>
-                <th>Teams</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leagueOptions.map((league) => (
-                <tr key={league.id}>
-                  <td>{league.name}</td>
-                  <td>{league.status}</td>
-                  <td>{league.seasonName}</td>
-                  <td>{league.ownershipMode}</td>
-                  <td>{league.creatorId}</td>
-                  <td>{league.teamCount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <section className="rounded-xl border bg-card p-5">
-        <h3>Scoring tools</h3>
-        {teamOptions.length === 0 ? (
-          <p>No teams found yet. Create a league and team first.</p>
-        ) : (
-          <>
-            <p>
-              <label>
-                Team{' '}
-                <select
-                  value={selectedTeamId}
-                  onChange={(event) => setSelectedTeamId(event.target.value)}
-                >
-                  {teamOptions.map((team) => (
-                    <option key={team.teamId} value={team.teamId}>
-                      {team.teamName} ({team.teamId}) - {team.leagueName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </p>
-
-            <form onSubmit={handleCalculateDayScore}>
-              <h4>Calculate one day</h4>
-              <label>
-                Date{' '}
-                <input
-                  type="date"
-                  value={scoreDate}
-                  onChange={(event) => setScoreDate(event.target.value)}
-                />
-              </label>{' '}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={forceRecalculateDay}
-                  onChange={(event) =>
-                    setForceRecalculateDay(event.target.checked)
-                  }
-                />{' '}
-                Force recalculate
-              </label>{' '}
-              <Button type="submit" disabled={isScoreLoading}>
-                {isScoreLoading ? 'Running...' : 'Calculate day score'}
-              </Button>
-              <p>{scoreStatus}</p>
-            </form>
-
-            <form onSubmit={handleCalculateRangeScores}>
-              <h4>Backfill range (trading days only)</h4>
-              <label>
-                Start date{' '}
-                <input
-                  type="date"
-                  value={rangeStartDate}
-                  onChange={(event) => setRangeStartDate(event.target.value)}
-                />
-              </label>{' '}
-              <label>
-                End date{' '}
-                <input
-                  type="date"
-                  value={rangeEndDate}
-                  onChange={(event) => setRangeEndDate(event.target.value)}
-                />
-              </label>{' '}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={forceRecalculateRange}
-                  onChange={(event) =>
-                    setForceRecalculateRange(event.target.checked)
-                  }
-                />{' '}
-                Force recalculate
-              </label>{' '}
-              <Button type="submit" disabled={isRangeLoading}>
-                {isRangeLoading ? 'Running...' : 'Backfill range'}
-              </Button>
-              <p>{rangeStatus}</p>
-            </form>
-
-            <form onSubmit={handleInvalidateScores}>
-              <h4>Invalidate cached scores</h4>
-              <label>
-                From date{' '}
-                <input
-                  type="date"
-                  value={invalidateFromDate}
-                  onChange={(event) =>
-                    setInvalidateFromDate(event.target.value)
-                  }
-                />
-              </label>{' '}
-              <label>
-                To date{' '}
-                <input
-                  type="date"
-                  value={invalidateToDate}
-                  onChange={(event) => setInvalidateToDate(event.target.value)}
-                />
-              </label>{' '}
-              <Button type="submit" disabled={isInvalidateLoading}>
-                {isInvalidateLoading ? 'Running...' : 'Invalidate cache'}
-              </Button>
-              <p>{invalidateStatus}</p>
-            </form>
-
-            <form onSubmit={handleRunDebugSnapshot}>
-              <h4>Team debug snapshot</h4>
-              <label>
-                Snapshot date{' '}
-                <input
-                  type="date"
-                  value={debugDate}
-                  onChange={(event) => setDebugDate(event.target.value)}
-                />
-              </label>{' '}
-              <Button type="submit" disabled={isDebugLoading}>
-                {isDebugLoading ? 'Running...' : 'Generate snapshot'}
-              </Button>
-              <p>{debugStatus}</p>
-            </form>
-
-            {debugSnapshot ? (
-              <section className="rounded-lg border bg-muted/40 p-4">
-                <h4>Snapshot output</h4>
-                <p>
-                  Team: {debugSnapshot.teamId} | Date: {debugSnapshot.date} |
-                  Budget: {debugSnapshot.budget}
+        <div className="grid gap-8 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Seasons Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {seasonOptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No seasons to display.
                 </p>
-                <p>
-                  Roster valid: {String(debugSnapshot.rosterValidation.isValid)}{' '}
-                  | Holdings: {debugSnapshot.rosterValidation.holdingCount} |
-                  Total cost: {debugSnapshot.rosterValidation.totalCost}
-                </p>
-                <p>
-                  Tier counts:{' '}
-                  {JSON.stringify(debugSnapshot.rosterValidation.tierCounts)}
-                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Market</TableHead>
+                        <TableHead>Inst.</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {seasonOptions.map((season) => (
+                        <TableRow key={season.id}>
+                          <TableCell className="font-medium">
+                            {season.name}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{season.status}</Badge>
+                          </TableCell>
+                          <TableCell>{season.market}</TableCell>
+                          <TableCell>{season.instrumentCount}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                {debugSnapshot.rosterValidation.errors.length > 0 ? (
-                  <ul>
+          <Card>
+            <CardHeader>
+              <CardTitle>Leagues Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {leagueOptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No leagues to display.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Season</TableHead>
+                        <TableHead>Mode</TableHead>
+                        <TableHead>Teams</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leagueOptions.map((league) => (
+                        <TableRow key={league.id}>
+                          <TableCell className="font-medium">
+                            {league.name}
+                          </TableCell>
+                          <TableCell>{league.seasonName}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {league.ownershipMode}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{league.teamCount}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {debugSnapshot && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardHeader>
+              <CardTitle>Debug Snapshot Output</CardTitle>
+              <CardDescription>
+                Team: {debugSnapshot.teamId} | Date: {debugSnapshot.date} |
+                Budget: {debugSnapshot.budget}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-lg border bg-background p-4">
+                  <div className="text-sm font-medium text-muted-foreground mb-1">
+                    Roster Valid
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {String(debugSnapshot.rosterValidation.isValid)}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background p-4">
+                  <div className="text-sm font-medium text-muted-foreground mb-1">
+                    Holdings Count
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {debugSnapshot.rosterValidation.holdingCount}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background p-4">
+                  <div className="text-sm font-medium text-muted-foreground mb-1">
+                    Total Cost
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {debugSnapshot.rosterValidation.totalCost}
+                  </div>
+                </div>
+              </div>
+
+              {debugSnapshot.rosterValidation.errors.length > 0 && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+                  <h5 className="font-medium mb-2">Validation Errors</h5>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
                     {debugSnapshot.rosterValidation.errors.map((error) => (
                       <li key={error}>{error}</li>
                     ))}
                   </ul>
-                ) : null}
+                </div>
+              )}
 
-                <h5>Holdings</h5>
+              <div>
+                <h5 className="font-medium mb-3">Holdings</h5>
                 {debugSnapshot.holdings.length === 0 ? (
-                  <p>No holdings at this date.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No holdings at this date.
+                  </p>
                 ) : (
-                  <table border={1} cellPadding={6} cellSpacing={0}>
-                    <thead>
-                      <tr>
-                        <th>Symbol</th>
-                        <th>Added Date</th>
-                        <th>Tier</th>
-                        <th>Tier Cost</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {debugSnapshot.holdings.map((holding) => (
-                        <tr key={holding.symbol}>
-                          <td>{holding.symbol}</td>
-                          <td>
-                            {new Date(holding.addedDate)
-                              .toISOString()
-                              .slice(0, 10)}
-                          </td>
-                          <td>{holding.tier}</td>
-                          <td>{holding.tierCost}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Symbol</TableHead>
+                          <TableHead>Added Date</TableHead>
+                          <TableHead>Tier</TableHead>
+                          <TableHead className="text-right">
+                            Tier Cost
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {debugSnapshot.holdings.map((holding) => (
+                          <TableRow key={holding.symbol}>
+                            <TableCell className="font-medium">
+                              {holding.symbol}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(holding.addedDate)
+                                .toISOString()
+                                .slice(0, 10)}
+                            </TableCell>
+                            <TableCell>{holding.tier}</TableCell>
+                            <TableCell className="text-right">
+                              {holding.tierCost}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h5 className="font-medium mb-3">Day Score</h5>
+                <div className="grid gap-4 md:grid-cols-2 mb-4">
+                  <div className="rounded-lg border bg-background p-4">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      Trading Day
+                    </div>
+                    <div className="text-lg font-semibold">
+                      {String(debugSnapshot.dayScore.isTradingDay)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-background p-4">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">
+                      Points
+                    </div>
+                    <div className="text-lg font-semibold">
+                      {debugSnapshot.dayScore.points}
+                    </div>
+                  </div>
+                </div>
+
+                {debugSnapshot.dayScore.missingSymbols.length > 0 && (
+                  <div className="mb-4 rounded-lg border border-warning/50 bg-warning/10 p-4 text-warning-foreground">
+                    <span className="font-medium">Missing symbols: </span>
+                    {debugSnapshot.dayScore.missingSymbols.join(', ')}
+                  </div>
                 )}
 
-                <h5>Day score</h5>
-                <p>
-                  Trading day: {String(debugSnapshot.dayScore.isTradingDay)} |
-                  Points: {debugSnapshot.dayScore.points}
-                </p>
-                <p>
-                  Missing symbols:{' '}
-                  {debugSnapshot.dayScore.missingSymbols.length > 0
-                    ? debugSnapshot.dayScore.missingSymbols.join(', ')
-                    : 'none'}
-                </p>
-                <pre>
-                  {JSON.stringify(debugSnapshot.dayScore.breakdown, null, 2)}
-                </pre>
-              </section>
-            ) : null}
-          </>
+                <div className="rounded-md border bg-muted p-4 overflow-x-auto">
+                  <pre className="text-xs">
+                    {JSON.stringify(debugSnapshot.dayScore.breakdown, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
-      </section>
-
-      <h2>Tables</h2>
-      <ul>
-        {tables.map((table) => (
-          <li key={table.name}>
-            <Link
-              to="/backend/$table"
-              params={{ table: table.name }}
-              search={{
-                page: 1,
-                pageSize: 50,
-                query: '',
-                filterColumn: '',
-                filterValue: '',
-              }}
-            >
-              {table.name}
-            </Link>{' '}
-            ({table.rowCount} rows)
-          </li>
-        ))}
-      </ul>
+      </div>
     </main>
   )
 }

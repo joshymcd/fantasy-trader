@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '../../components/ui/card'
@@ -205,34 +206,18 @@ function BackendTablePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form method="get" className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2 md:col-span-2">
+          <form method="get" className="grid gap-6 md:grid-cols-12">
+            <div className="space-y-2 md:col-span-6">
               <Label htmlFor="query">Text search</Label>
-              <Input id="query" name="query" defaultValue={search.query} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="filterValue">Filter value</Label>
               <Input
-                id="filterValue"
-                name="filterValue"
-                defaultValue={search.filterValue}
+                id="query"
+                name="query"
+                defaultValue={search.query}
+                placeholder="Search across all text columns..."
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pageSize">Page size</Label>
-              <Input
-                id="pageSize"
-                type="number"
-                min={1}
-                max={200}
-                name="pageSize"
-                defaultValue={search.pageSize}
-              />
-            </div>
-
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-3">
               <Label>Filter column</Label>
               <Select value={filterColumn} onValueChange={setFilterColumn}>
                 <SelectTrigger>
@@ -249,6 +234,28 @@ function BackendTablePage() {
               </Select>
             </div>
 
+            <div className="space-y-2 md:col-span-3">
+              <Label htmlFor="filterValue">Filter value</Label>
+              <Input
+                id="filterValue"
+                name="filterValue"
+                defaultValue={search.filterValue}
+                placeholder="Exact match..."
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-3">
+              <Label htmlFor="pageSize">Page size</Label>
+              <Input
+                id="pageSize"
+                type="number"
+                min={1}
+                max={200}
+                name="pageSize"
+                defaultValue={search.pageSize}
+              />
+            </div>
+
             <input type="hidden" name="page" value="1" />
             <input
               type="hidden"
@@ -256,8 +263,7 @@ function BackendTablePage() {
               value={filterColumn === '__none' ? '' : filterColumn}
             />
 
-            <div className="flex items-end gap-2 md:col-span-3">
-              <Button type="submit">Apply filters</Button>
+            <div className="flex items-end gap-2 md:col-span-9 justify-end">
               <Button variant="outline" asChild>
                 <Link
                   to="/backend/$table"
@@ -273,60 +279,16 @@ function BackendTablePage() {
                   Reset
                 </Link>
               </Button>
+              <Button type="submit">Apply filters</Button>
             </div>
           </form>
 
-          <div className="flex items-center justify-between">
-            <div className="flex flex-wrap gap-2">
-              {data.columns.map((column) => (
-                <Badge key={column} variant="outline">
-                  {column}
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page <= 1}
-                asChild={data.page > 1}
-              >
-                {data.page > 1 ? (
-                  <Link
-                    to="/backend/$table"
-                    params={{ table: data.name }}
-                    search={{ ...search, page: data.page - 1 }}
-                  >
-                    <ArrowLeft className="mr-1 size-4" /> Previous
-                  </Link>
-                ) : (
-                  <span>
-                    <ArrowLeft className="mr-1 inline size-4" /> Previous
-                  </span>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page >= data.totalPages}
-                asChild={data.page < data.totalPages}
-              >
-                {data.page < data.totalPages ? (
-                  <Link
-                    to="/backend/$table"
-                    params={{ table: data.name }}
-                    search={{ ...search, page: data.page + 1 }}
-                  >
-                    Next <ArrowRight className="ml-1 size-4" />
-                  </Link>
-                ) : (
-                  <span>
-                    Next <ArrowRight className="ml-1 inline size-4" />
-                  </span>
-                )}
-              </Button>
-            </div>
+          <div className="flex flex-wrap gap-2 pt-2">
+            {data.columns.map((column) => (
+              <Badge key={column} variant="outline">
+                {column}
+              </Badge>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -368,7 +330,7 @@ function BackendTablePage() {
                                 key={`${data.name}-${rowIndex}-${linkIndex}`}
                                 asChild
                                 size="sm"
-                                variant="secondary"
+                                variant="outline"
                               >
                                 <Link
                                   to="/backend/$table"
@@ -395,6 +357,54 @@ function BackendTablePage() {
             </div>
           )}
         </CardContent>
+        <CardFooter className="flex items-center justify-between border-t px-6 py-4">
+          <div className="text-sm text-muted-foreground">
+            Showing page {data.page} of {data.totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={data.page <= 1}
+              asChild={data.page > 1}
+            >
+              {data.page > 1 ? (
+                <Link
+                  to="/backend/$table"
+                  params={{ table: data.name }}
+                  search={{ ...search, page: data.page - 1 }}
+                >
+                  <ArrowLeft className="mr-1 size-4" /> Previous
+                </Link>
+              ) : (
+                <span>
+                  <ArrowLeft className="mr-1 inline size-4" /> Previous
+                </span>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={data.page >= data.totalPages}
+              asChild={data.page < data.totalPages}
+            >
+              {data.page < data.totalPages ? (
+                <Link
+                  to="/backend/$table"
+                  params={{ table: data.name }}
+                  search={{ ...search, page: data.page + 1 }}
+                >
+                  Next <ArrowRight className="ml-1 size-4" />
+                </Link>
+              ) : (
+                <span>
+                  Next <ArrowRight className="ml-1 inline size-4" />
+                </span>
+              )}
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
     </main>
   )
