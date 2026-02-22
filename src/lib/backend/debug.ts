@@ -53,6 +53,12 @@ export type TableDetails = {
   totalPages: number
 }
 
+export type ClearBackendTablesResult = {
+  tablesCleared: DebugTableName[]
+  deletedRows: number
+  clearedAt: string
+}
+
 type TableQueryOptions = {
   page?: number
   pageSize?: number
@@ -275,6 +281,27 @@ export async function getBackendTableOverview(): Promise<TableOverview[]> {
   )
 
   return counts
+}
+
+export async function clearBackendTables(): Promise<ClearBackendTablesResult> {
+  const rowCounts = await Promise.all(
+    DEBUG_TABLES.map(async (name) => ({
+      name,
+      rowCount: await getCountForTable(name),
+    })),
+  )
+
+  await db.transaction(async (tx) => {
+    await tx.delete(priceDaily)
+    await tx.delete(tradingCalendar)
+    await tx.delete(seasons)
+  })
+
+  return {
+    tablesCleared: [...DEBUG_TABLES],
+    deletedRows: rowCounts.reduce((sum, row) => sum + row.rowCount, 0),
+    clearedAt: new Date().toISOString(),
+  }
 }
 
 export async function getBackendSystemStats(): Promise<BackendSystemStats> {

@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  clearBackendTables,
   getBackendSystemStats,
   getBackendTableOverview,
 } from '@/lib/backend/debug'
@@ -120,6 +121,12 @@ const runPopulateCalendar = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     return populateCalendar(data.year)
   })
+
+const runClearAllTables = createServerFn({ method: 'POST' }).handler(
+  async () => {
+    return clearBackendTables()
+  },
+)
 
 const runSyncPrices = createServerFn({ method: 'POST' })
   .inputValidator((payload: { targetDate: string }) => payload)
@@ -421,6 +428,7 @@ function BackendIndexPage() {
   const [seasonSymbolsCsv, setSeasonSymbolsCsv] = useState('')
   const [seasonSymbolLimit, setSeasonSymbolLimit] = useState('200')
   const [calendarStatus, setCalendarStatus] = useState('')
+  const [clearTablesStatus, setClearTablesStatus] = useState('')
   const [priceStatus, setPriceStatus] = useState('')
   const [seasonCreateStatus, setSeasonCreateStatus] = useState('')
   const [seasonPopulateStatus, setSeasonPopulateStatus] = useState('')
@@ -464,6 +472,7 @@ function BackendIndexPage() {
   const [invalidateStatus, setInvalidateStatus] = useState('')
   const [debugStatus, setDebugStatus] = useState('')
   const [isCalendarLoading, setIsCalendarLoading] = useState(false)
+  const [isClearTablesLoading, setIsClearTablesLoading] = useState(false)
   const [isPriceLoading, setIsPriceLoading] = useState(false)
   const [isSeasonCreateLoading, setIsSeasonCreateLoading] = useState(false)
   const [isSeasonPopulateLoading, setIsSeasonPopulateLoading] = useState(false)
@@ -601,6 +610,38 @@ function BackendIndexPage() {
       )
     } finally {
       setIsPriceLoading(false)
+    }
+  }
+
+  const handleClearAllTables = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    const confirmed = window.confirm(
+      'This will permanently delete all rows from backend game tables. Continue?',
+    )
+
+    if (!confirmed) {
+      setClearTablesStatus('Clear cancelled')
+      return
+    }
+
+    setIsClearTablesLoading(true)
+    setClearTablesStatus('Running...')
+
+    try {
+      const result = await runClearAllTables()
+      setClearTablesStatus(
+        `Cleared ${result.deletedRows} rows across ${result.tablesCleared.length} tables`,
+      )
+      await router.invalidate()
+    } catch (error) {
+      setClearTablesStatus(
+        `Clear error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
+    } finally {
+      setIsClearTablesLoading(false)
     }
   }
 
@@ -1171,6 +1212,31 @@ function BackendIndexPage() {
                 </div>
                 {priceStatus && (
                   <p className="text-sm text-muted-foreground">{priceStatus}</p>
+                )}
+              </form>
+
+              <Separator />
+
+              <form onSubmit={handleClearAllTables} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Danger zone</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Deletes all rows from game tables used by this backend
+                    console.
+                  </p>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={isClearTablesLoading}
+                    className="w-full"
+                  >
+                    {isClearTablesLoading ? 'Running...' : 'Clear all tables'}
+                  </Button>
+                </div>
+                {clearTablesStatus && (
+                  <p className="text-sm text-muted-foreground">
+                    {clearTablesStatus}
+                  </p>
                 )}
               </form>
             </CardContent>
