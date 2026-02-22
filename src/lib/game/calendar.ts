@@ -14,14 +14,18 @@ export type TradingCalendarEntry = {
 
 const LONDON_TIMEZONE = 'Europe/London'
 
+/** Formats a date into a UTC-safe `yyyy-MM-dd` key. */
 const toDateKey = (value: Date): string => format(value, 'yyyy-MM-dd')
 
+/** Parses a `yyyy-MM-dd` key into a UTC midnight `Date`. */
 const fromDateKey = (value: string): Date => new Date(`${value}T00:00:00.000Z`)
 
+/** Returns true when a date is a configured UK bank holiday. */
 export function isUkBankHoliday(date: Date): boolean {
   return UK_BANK_HOLIDAYS.has(toDateKey(date))
 }
 
+/** Returns true when a date is a valid UK trading day. */
 export function isTradingDayDate(date: Date): boolean {
   const day = date.getUTCDay()
   const isWeekend = day === 0 || day === 6
@@ -29,6 +33,7 @@ export function isTradingDayDate(date: Date): boolean {
   return !isWeekend && !isUkBankHoliday(date)
 }
 
+/** Builds a full year calendar with previous/next trading-day links. */
 export function generateTradingCalendarEntries(
   year: number,
 ): TradingCalendarEntry[] {
@@ -77,6 +82,7 @@ export function generateTradingCalendarEntries(
   return entries.map(({ dateKey: _dateKey, ...entry }) => entry)
 }
 
+/** Upserts one year of generated trading-calendar entries into the database. */
 export async function populateCalendar(year: number): Promise<{
   year: number
   totalDays: number
@@ -103,6 +109,7 @@ export async function populateCalendar(year: number): Promise<{
   }
 }
 
+/** Checks whether a date is marked as a trading day. */
 export async function isTradingDay(date: Date): Promise<boolean> {
   const key = toDateKey(date)
   const row = await db.query.tradingCalendar.findFirst({
@@ -115,6 +122,7 @@ export async function isTradingDay(date: Date): Promise<boolean> {
   return row?.isTradingDay ?? isTradingDayDate(date)
 }
 
+/** Returns the next trading day on or after the provided date. */
 export async function getNextTradingDay(date: Date): Promise<Date> {
   const key = fromDateKey(toDateKey(date))
   const row = await db.query.tradingCalendar.findFirst({
@@ -142,6 +150,7 @@ export async function getNextTradingDay(date: Date): Promise<Date> {
   return key
 }
 
+/** Returns the most recent trading day before the provided date. */
 export async function getPrevTradingDay(date: Date): Promise<Date> {
   const key = fromDateKey(toDateKey(date))
   const row = await db.query.tradingCalendar.findFirst({
@@ -170,6 +179,7 @@ export async function getPrevTradingDay(date: Date): Promise<Date> {
   return subDays(key, 1)
 }
 
+/** Returns true when the UK market session is currently open. */
 export function isMarketOpen(now: Date = new Date()): boolean {
   const formatter = new Intl.DateTimeFormat('en-GB', {
     timeZone: LONDON_TIMEZONE,

@@ -1,3 +1,4 @@
+/** Default LSE symbol universe used when a custom list is not provided. */
 export const UK_LSE_DEFAULT_SYMBOLS = [
   'SHEL.L',
   'AZN.L',

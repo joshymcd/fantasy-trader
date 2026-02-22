@@ -10,9 +10,11 @@ import {
 } from '../../db/schema'
 import { ROSTER_SIZE, TIER_COUNT, emptyTierCounts } from '../../types/game'
 
+/** Normalizes user-entered symbols into uppercase ticker values. */
 const parseSymbols = (symbols: string[]) =>
   symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean)
 
+/** Lists season instruments with league-level availability metadata. */
 export async function getAvailableInstruments(leagueId: string) {
   const [league] = await db
     .select({
@@ -65,6 +67,7 @@ export async function getAvailableInstruments(leagueId: string) {
   })
 }
 
+/** Validates a submitted draft portfolio for league and season rules. */
 export async function validatePortfolio(input: {
   symbols: string[]
   seasonId: string
@@ -182,6 +185,7 @@ export async function validatePortfolio(input: {
   }
 }
 
+/** Persists a team's draft portfolio and updates league draft status. */
 export async function selectPortfolio(input: {
   teamId: string
   symbols: string[]

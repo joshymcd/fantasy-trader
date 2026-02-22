@@ -1,3 +1,4 @@
+/** Canonical UK bank-holiday date keys used for market-closed checks. */
 export const UK_BANK_HOLIDAYS = new Set([
   // 2025
   '2025-01-01',

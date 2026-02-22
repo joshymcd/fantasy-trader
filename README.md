@@ -1,4 +1,4 @@
-Welcome to your new TanStack Start app! 
+Welcome to your new TanStack Start app!
 
 # Getting Started
 
@@ -40,7 +40,6 @@ If you prefer not to use Tailwind CSS:
 
 ## Linting & Formatting
 
-
 This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
 
 ```bash
@@ -48,7 +47,6 @@ bun --bun run lint
 bun --bun run format
 bun --bun run check
 ```
-
 
 ## Setting up Better Auth
 
@@ -66,15 +64,15 @@ Better Auth can work in stateless mode, but to persist user data, add a database
 
 ```typescript
 // src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { betterAuth } from 'better-auth'
+import { Pool } from 'pg'
 
 export const auth = betterAuth({
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),
   // ... rest of config
-});
+})
 ```
 
 Then run migrations:
@@ -82,7 +80,6 @@ Then run migrations:
 ```bash
 bunx --bun @better-auth/cli migrate
 ```
-
 
 ## T3Env
 
@@ -93,15 +90,10 @@ bunx --bun @better-auth/cli migrate
 ### Usage
 
 ```ts
-import { env } from "#/env";
+import { env } from '@/env'
 
-console.log(env.VITE_APP_TITLE);
+console.log(env.VITE_APP_TITLE)
 ```
-
-
-
-
-
 
 ## Routing
 
@@ -120,7 +112,7 @@ Now that you have two routes you can use a `Link` component to navigate between 
 To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
 
 ```tsx
-import { Link } from "@tanstack/react-router";
+import { Link } from '@tanstack/react-router'
 ```
 
 Then anywhere in your JSX you can use it like so:
@@ -188,11 +180,11 @@ const getServerTime = createServerFn({
 // Use in a component
 function MyComponent() {
   const [time, setTime] = useState('')
-  
+
   useEffect(() => {
     getServerTime().then(setTime)
   }, [])
-  
+
   return <div>Server time: {time}</div>
 }
 ```

@@ -9,6 +9,7 @@ import {
   emptyTierCounts,
 } from '../../types/game'
 
+/** Converts a date to a `yyyy-MM-dd` comparison key. */
 const toDateKey = (value: Date) => value.toISOString().slice(0, 10)
 
 export type Holding = {
@@ -26,6 +27,7 @@ export type RosterValidation = {
   tierCounts: ReturnType<typeof emptyTierCounts>
 }
 
+/** Resolves the season id for a team. */
 async function getTeamSeasonId(teamId: string) {
   const rows = await db
     .select({ seasonId: leagues.seasonId })
@@ -42,6 +44,7 @@ async function getTeamSeasonId(teamId: string) {
   return seasonId
 }
 
+/** Returns all holdings a team has as of a given effective date. */
 export async function getHoldingsAtDate(teamId: string, date: Date) {
   const seasonId = await getTeamSeasonId(teamId)
 
@@ -114,6 +117,7 @@ export async function getHoldingsAtDate(teamId: string, date: Date) {
   return holdings
 }
 
+/** Validates roster size, tier mix, and budget constraints. */
 export function validateRoster(holdings: Holding[], budget: number) {
   const tierCounts = emptyTierCounts()
   let totalCost = 0
@@ -151,10 +155,12 @@ export function validateRoster(holdings: Holding[], budget: number) {
   } satisfies RosterValidation
 }
 
+/** Returns true when scoring date is the holding's added date. */
 export function isFirstScoringDay(addedDate: Date, scoringDate: Date) {
   return toDateKey(addedDate) === toDateKey(scoringDate)
 }
 
+/** Returns default tier cost for a tier number. */
 export function getDefaultTierCostForTier(tier: number) {
   return TIER_COSTS[tier] ?? 0
 }

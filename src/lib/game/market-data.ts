@@ -27,15 +27,18 @@ type YahooHistoricalBar = {
   adjClose?: number
 }
 
+/** Normalizes a date to UTC midnight. */
 const toUtcDate = (value: Date): Date =>
   new Date(
     Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()),
   )
 
+/** Sleeps for the requested number of milliseconds. */
 const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/** Retries an async operation using linear backoff. */
 async function withRetries<T>(
   fn: () => Promise<T>,
   maxRetries = MAX_RETRIES,
@@ -56,6 +59,7 @@ async function withRetries<T>(
   }
 }
 
+/** Fetches daily adjusted close bars for a symbol. */
 export async function fetchEodPrices(
   symbol: string,
   startDate: Date,
@@ -86,12 +90,14 @@ export async function fetchEodPrices(
     .sort((a: PriceBar, b: PriceBar) => a.date.getTime() - b.date.getTime())
 }
 
+/** Returns all unique symbols from the current instrument universe. */
 export async function getAllInstrumentSymbols(): Promise<string[]> {
   const rows = await db.select({ symbol: instruments.symbol }).from(instruments)
   const unique = new Set(rows.map((row) => row.symbol))
   return [...unique]
 }
 
+/** Ensures prices exist up to target date for provided symbols. */
 export async function ensurePricesUpTo(
   symbols: string[],
   targetDate: Date = subDays(new Date(), 1),
@@ -99,6 +105,7 @@ export async function ensurePricesUpTo(
   await ensurePricesUpToWithReport(symbols, targetDate)
 }
 
+/** Ensures prices up to target date and returns fetch diagnostics. */
 export async function ensurePricesUpToWithReport(
   symbols: string[],
   targetDate: Date = subDays(new Date(), 1),
@@ -170,12 +177,14 @@ export async function ensurePricesUpToWithReport(
   return report
 }
 
+/** Ensures prices for every instrument in the universe. */
 export async function ensurePricesForInstrumentUniverse(
   targetDate: Date = subDays(new Date(), 1),
 ): Promise<void> {
   await ensurePricesForInstrumentUniverseWithReport(targetDate)
 }
 
+/** Ensures universe prices and returns fetch diagnostics. */
 export async function ensurePricesForInstrumentUniverseWithReport(
   targetDate: Date = subDays(new Date(), 1),
 ): Promise<PriceSyncReport> {

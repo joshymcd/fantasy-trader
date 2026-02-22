@@ -27,6 +27,7 @@ type CandidateInstrument = {
 
 const DEFAULT_SYMBOL_LIMIT = 200
 
+/** Retries an async operation before surfacing failure. */
 async function withRetries<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   let attempt = 0
   while (true) {
@@ -42,6 +43,7 @@ async function withRetries<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   }
 }
 
+/** Parses comma-separated symbols into normalized ticker values. */
 function parseSymbols(csvSymbols: string) {
   return csvSymbols
     .split(',')
@@ -49,12 +51,14 @@ function parseSymbols(csvSymbols: string) {
     .filter(Boolean)
 }
 
+/** Maps a sorted index to a 1-5 tier bucket. */
 function getTierForIndex(index: number, totalCount: number) {
   const quintileSize = Math.max(1, Math.ceil(totalCount / 5))
   const tier = Math.floor(index / quintileSize) + 1
   return Math.min(5, tier)
 }
 
+/** Loads quote metadata used to create a candidate instrument. */
 async function fetchCandidateInstrument(
   symbol: string,
 ): Promise<CandidateInstrument | null> {
@@ -87,6 +91,7 @@ async function fetchCandidateInstrument(
   }
 }
 
+/** Creates a season record in setup state. */
 export async function createSeason(input: CreateSeasonInput) {
   const [season] = await db
     .insert(seasons)
@@ -113,6 +118,7 @@ export async function createSeason(input: CreateSeasonInput) {
   return season
 }
 
+/** Lists seasons ordered by creation time. */
 export async function listSeasons() {
   return db
     .select({
@@ -130,6 +136,7 @@ export async function listSeasons() {
     .orderBy(seasons.createdAt)
 }
 
+/** Returns instruments currently attached to a season. */
 export async function getSeasonInstruments(seasonId: string) {
   return db
     .select({
@@ -143,6 +150,7 @@ export async function getSeasonInstruments(seasonId: string) {
     .where(eq(instruments.seasonId, seasonId))
 }
 
+/** Rebuilds season instruments from symbol input and tier assignment. */
 export async function populateSeasonInstruments(input: {
   seasonId: string
   symbolsCsv?: string
@@ -199,6 +207,7 @@ export async function populateSeasonInstruments(input: {
   }
 }
 
+/** Activates a setup season once it has at least one instrument. */
 export async function activateSeason(seasonId: string) {
   const seasonInstruments = await db
     .select({ id: instruments.id })

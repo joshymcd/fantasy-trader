@@ -14,35 +14,44 @@ import {
 import { validateRoster } from './holdings'
 import { getNextTradingDay, isMarketOpen } from './calendar'
 
+/** Converts a date to a normalized day key. */
 const toDateKey = (value: Date) => value.toISOString().slice(0, 10)
 
+/** Parses a normalized day key into a UTC date. */
 const fromDateKey = (value: string) => new Date(`${value}T00:00:00.000Z`)
 
+/** Normalizes a user-entered ticker symbol. */
 const normalizeSymbol = (value: string) => value.trim().toUpperCase()
 
+/** Returns UTC day start for a date. */
 const getUtcDayStart = (date: Date) =>
   new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   )
 
+/** Returns UTC day end for a UTC day start value. */
 const getUtcDayEnd = (dayStart: Date) =>
   new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
 
+/** Returns UTC Monday start for a date's week. */
 const getUtcWeekStart = (date: Date) => {
   const dayStart = getUtcDayStart(date)
   const dayOffset = (dayStart.getUTCDay() + 6) % 7
   return addDays(dayStart, -dayOffset)
 }
 
+/** Resolves the next trading day effective date for swap actions. */
 const getNextEffectiveDate = async (submittedAt: Date) => {
   const tomorrow = addDays(getUtcDayStart(submittedAt), 1)
   return getNextTradingDay(tomorrow)
 }
 
+/** Returns true when a waiver claim is still active in lifecycle terms. */
 const isWaiverClaimActive = (
   status: 'PENDING' | 'WON' | 'LOST' | 'CANCELLED',
 ) => status !== 'CANCELLED'
 
+/** Returns remaining daily and weekly swap capacity for a team. */
 export async function getRemainingSwaps(
   teamId: string,
   atDate: Date = new Date(),
@@ -154,6 +163,7 @@ export async function getRemainingSwaps(
   }
 }
 
+/** Submits a roster swap as direct move or waiver claim by league mode. */
 export async function submitSwap(input: {
   teamId: string
   dropSymbol: string
@@ -434,6 +444,7 @@ export async function submitSwap(input: {
   }
 }
 
+/** Processes pending waiver claims for a league and effective date. */
 export async function processWaiverClaims(leagueId: string, date: Date) {
   const effectiveDate = fromDateKey(toDateKey(date))
 
@@ -770,6 +781,7 @@ export async function processWaiverClaims(leagueId: string, date: Date) {
   })
 }
 
+/** Returns recent combined swap and waiver history for a team. */
 export async function getSwapHistory(teamId: string, limit = 100) {
   const safeLimit = Math.max(1, Math.min(limit, 500))
 
@@ -809,6 +821,7 @@ export async function getSwapHistory(teamId: string, limit = 100) {
     .slice(0, safeLimit)
 }
 
+/** Cancels a pending waiver claim for a team. */
 export async function cancelWaiverClaim(claimId: string, teamId: string) {
   const [claim] = await db
     .select({

@@ -16,6 +16,7 @@ type CreateTeamInput = {
   name: string
 }
 
+/** Creates a new league for a season. */
 export async function createLeague(input: CreateLeagueInput) {
   const seasonRows = await db
     .select({ id: seasons.id, status: seasons.status })
@@ -49,6 +50,7 @@ export async function createLeague(input: CreateLeagueInput) {
   return league
 }
 
+/** Creates a team for a user inside a league. */
 export async function createTeam(input: CreateTeamInput) {
   const leagueRows = await db
     .select({ id: leagues.id })
@@ -90,6 +92,7 @@ export async function createTeam(input: CreateTeamInput) {
   return team
 }
 
+/** Lists leagues with their team counts. */
 export async function listLeagues() {
   const rows = await db
     .select({
@@ -120,6 +123,7 @@ export async function listLeagues() {
   }))
 }
 
+/** Lists teams that belong to a league. */
 export async function listLeagueTeams(leagueId: string) {
   return db
     .select({
@@ -134,6 +138,7 @@ export async function listLeagueTeams(leagueId: string) {
     .where(eq(teams.leagueId, leagueId))
 }
 
+/** Returns league details plus teams, or null when not found. */
 export async function getLeagueById(leagueId: string) {
   const [league] = await db
     .select({

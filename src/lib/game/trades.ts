@@ -13,12 +13,14 @@ import {
 import { getNextTradingDay, isMarketOpen } from './calendar'
 import { getHoldingsAtDate, validateRoster } from './holdings'
 
+/** Normalizes and de-duplicates ticker symbols. */
 const normalizeSymbols = (symbols: string[]) => [
   ...new Set(
     symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean),
   ),
 ]
 
+/** Throws when a trade action is attempted after the trade deadline date. */
 const assertBeforeTradeDeadline = (
   tradeDeadlineDate: Date,
   attemptedAt: Date,
@@ -36,11 +38,13 @@ const assertBeforeTradeDeadline = (
   }
 }
 
+/** Returns holdings keyed by symbol for a team on an effective date. */
 async function getRosterAtEffectiveDate(teamId: string, effectiveDate: Date) {
   const holdings = await getHoldingsAtDate(teamId, effectiveDate)
   return new Map(holdings.map((holding) => [holding.symbol, holding]))
 }
 
+/** Creates a pending trade proposal between two teams. */
 export async function proposeTrade(input: {
   fromTeamId: string
   toTeamId: string
@@ -237,6 +241,7 @@ export async function proposeTrade(input: {
   return proposal
 }
 
+/** Accepts a pending trade proposal and writes roster trade moves. */
 export async function acceptTrade(input: {
   tradeId: string
   actedByTeamId?: string
@@ -479,6 +484,7 @@ export async function acceptTrade(input: {
   })
 }
 
+/** Rejects a pending trade proposal. */
 export async function rejectTrade(input: {
   tradeId: string
   actedByTeamId?: string
@@ -528,6 +534,7 @@ export async function rejectTrade(input: {
   return updated
 }
 
+/** Lists trade proposals where the team is proposer or recipient. */
 export async function getTradeProposalsForTeam(teamId: string) {
   return db
     .select({
@@ -552,6 +559,7 @@ export async function getTradeProposalsForTeam(teamId: string) {
     .orderBy(asc(tradeProposals.createdAt), asc(tradeProposals.id))
 }
 
+/** Expires pending trades once league trade deadline has passed. */
 export async function expirePendingTrades(
   leagueId: string,
   atDate: Date = new Date(),
@@ -594,6 +602,7 @@ export async function expirePendingTrades(
   return { expiredCount: expired.length }
 }
 
+/** Cancels a pending trade proposal by its proposer. */
 export async function cancelTrade(input: {
   tradeId: string
   fromTeamId: string

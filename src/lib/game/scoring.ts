@@ -11,8 +11,10 @@ import {
 import { getHoldingsAtDate, isFirstScoringDay } from './holdings'
 import { getPrevTradingDay, isTradingDay } from './calendar'
 
+/** Converts a date to a normalized day key. */
 const toDateKey = (value: Date) => value.toISOString().slice(0, 10)
 
+/** Rounds a numeric score to four decimal places. */
 const round4 = (value: number) => Math.round(value * 10000) / 10000
 
 export type DayScore = {
@@ -29,6 +31,7 @@ const defaultScoringConfig: ScoringConfig = {
   firstDayPenalty: DEFAULT_FIRST_DAY_PENALTY,
 }
 
+/** Loads adjusted close values for symbols on a specific date. */
 async function getPriceMap(symbols: string[], date: Date) {
   if (symbols.length === 0) {
     return new Map<string, number>()
@@ -42,6 +45,7 @@ async function getPriceMap(symbols: string[], date: Date) {
   return new Map(rows.map((row) => [row.symbol, Number(row.adjClose)]))
 }
 
+/** Calculates a single team score for one market day. */
 export async function calculateTeamDay(
   teamId: string,
   date: Date,
@@ -120,6 +124,7 @@ export async function calculateTeamDay(
   } satisfies DayScore
 }
 
+/** Returns a cached team-day score, if present. */
 export async function getCachedTeamDayScore(teamId: string, date: Date) {
   const row = await db.query.teamDayScores.findFirst({
     where: and(eq(teamDayScores.teamId, teamId), eq(teamDayScores.date, date)),
@@ -139,6 +144,7 @@ export async function getCachedTeamDayScore(teamId: string, date: Date) {
   } satisfies DayScore
 }
 
+/** Upserts a calculated team-day score into the cache table. */
 export async function cacheTeamDayScore(dayScore: DayScore) {
   await db
     .insert(teamDayScores)
@@ -161,6 +167,7 @@ export async function cacheTeamDayScore(dayScore: DayScore) {
   return dayScore
 }
 
+/** Returns cached score or calculates and caches it on demand. */
 export async function getOrCalculateScore(
   teamId: string,
   date: Date,
@@ -180,6 +187,7 @@ export async function getOrCalculateScore(
   return cacheTeamDayScore(dayScore)
 }
 
+/** Calculates team scores across a date range of trading days. */
 export async function calculateTeamRange(
   teamId: string,
   startDate: Date,
@@ -209,6 +217,7 @@ export async function calculateTeamRange(
   return results
 }
 
+/** Deletes cached scores for the provided filter window. */
 export async function invalidateScores(
   options: {
     teamId?: string
@@ -237,6 +246,7 @@ export async function invalidateScores(
   return db.delete(teamDayScores).where(and(...conditions))
 }
 
+/** Calculates score for yesterday's trading date. */
 export async function calculateYesterdayScore(teamId: string) {
   const yesterday = addDays(new Date(), -1)
   return getOrCalculateScore(teamId, new Date(toDateKey(yesterday)))

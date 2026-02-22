@@ -34,10 +34,13 @@ export type HoldingWithPrice = {
   dailyReturnPct: number | null
 }
 
+/** Rounds to two decimals for UI percentages and prices. */
 const round2 = (value: number) => Math.round(value * 100) / 100
 
+/** Rounds to four decimals for score values. */
 const round4 = (value: number) => Math.round(value * 10000) / 10000
 
+/** Syncs market prices and returns the latest cached scoring date. */
 export async function syncPricesAndGetLatestDate(
   targetDate = subDays(new Date(), 1),
 ) {
@@ -57,6 +60,7 @@ export async function syncPricesAndGetLatestDate(
   }
 }
 
+/** Ensures team day-scores are hydrated for every team in a league. */
 export async function hydrateLeagueScores(leagueId: string, upToDate: Date) {
   const [league] = await db
     .select({ startDate: seasons.startDate })
@@ -81,6 +85,7 @@ export async function hydrateLeagueScores(leagueId: string, upToDate: Date) {
   )
 }
 
+/** Computes and ranks league standings through a target date. */
 export async function getLeagueStandings(leagueId: string, upToDate: Date) {
   const rows = await db
     .select({
@@ -116,6 +121,7 @@ export async function getLeagueStandings(leagueId: string, upToDate: Date) {
   })) satisfies LeagueStanding[]
 }
 
+/** Returns recent day-by-day and cumulative score history for a team. */
 export async function getTeamScoreHistory(
   teamId: string,
   upToDate: Date,
@@ -143,6 +149,7 @@ export async function getTeamScoreHistory(
   })
 }
 
+/** Returns a team's holdings annotated with current and prior prices. */
 export async function getTeamHoldingsWithPrices(teamId: string, date: Date) {
   const holdings = await getHoldingsAtDate(teamId, date)
   if (holdings.length === 0) {
@@ -200,6 +207,7 @@ export async function getTeamHoldingsWithPrices(teamId: string, date: Date) {
   })
 }
 
+/** Returns highest absolute daily movers for the current instrument set. */
 export async function getGlobalMovers(date: Date, limit = 8) {
   const previousDate = await getPrevTradingDay(date)
 
