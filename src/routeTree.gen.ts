@@ -18,6 +18,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppLeaguesLeagueIdRouteImport } from './routes/_app/leagues/$leagueId'
 import { Route as AppBackendTableRouteImport } from './routes/_app/backend/$table'
 import { Route as AppLeaguesLeagueIdStandingsRouteImport } from './routes/_app/leagues/$leagueId/standings'
+import { Route as AppLeaguesLeagueIdRosterRouteImport } from './routes/_app/leagues/$leagueId/roster'
 import { Route as AppLeaguesLeagueIdTeamTeamIdRouteImport } from './routes/_app/leagues/$leagueId/team/$teamId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -65,6 +66,12 @@ const AppLeaguesLeagueIdStandingsRoute =
     path: '/standings',
     getParentRoute: () => AppLeaguesLeagueIdRoute,
   } as any)
+const AppLeaguesLeagueIdRosterRoute =
+  AppLeaguesLeagueIdRosterRouteImport.update({
+    id: '/roster',
+    path: '/roster',
+    getParentRoute: () => AppLeaguesLeagueIdRoute,
+  } as any)
 const AppLeaguesLeagueIdTeamTeamIdRoute =
   AppLeaguesLeagueIdTeamTeamIdRouteImport.update({
     id: '/team/$teamId',
@@ -80,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/leagues/$leagueId': typeof AppLeaguesLeagueIdRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/backend/': typeof AppBackendIndexRoute
+  '/leagues/$leagueId/roster': typeof AppLeaguesLeagueIdRosterRoute
   '/leagues/$leagueId/standings': typeof AppLeaguesLeagueIdStandingsRoute
   '/leagues/$leagueId/team/$teamId': typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
@@ -91,6 +99,7 @@ export interface FileRoutesByTo {
   '/leagues/$leagueId': typeof AppLeaguesLeagueIdRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/backend': typeof AppBackendIndexRoute
+  '/leagues/$leagueId/roster': typeof AppLeaguesLeagueIdRosterRoute
   '/leagues/$leagueId/standings': typeof AppLeaguesLeagueIdStandingsRoute
   '/leagues/$leagueId/team/$teamId': typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
@@ -104,6 +113,7 @@ export interface FileRoutesById {
   '/_app/leagues/$leagueId': typeof AppLeaguesLeagueIdRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_app/backend/': typeof AppBackendIndexRoute
+  '/_app/leagues/$leagueId/roster': typeof AppLeaguesLeagueIdRosterRoute
   '/_app/leagues/$leagueId/standings': typeof AppLeaguesLeagueIdStandingsRoute
   '/_app/leagues/$leagueId/team/$teamId': typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/leagues/$leagueId'
     | '/api/auth/$'
     | '/backend/'
+    | '/leagues/$leagueId/roster'
     | '/leagues/$leagueId/standings'
     | '/leagues/$leagueId/team/$teamId'
   fileRoutesByTo: FileRoutesByTo
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/leagues/$leagueId'
     | '/api/auth/$'
     | '/backend'
+    | '/leagues/$leagueId/roster'
     | '/leagues/$leagueId/standings'
     | '/leagues/$leagueId/team/$teamId'
   id:
@@ -140,6 +152,7 @@ export interface FileRouteTypes {
     | '/_app/leagues/$leagueId'
     | '/api/auth/$'
     | '/_app/backend/'
+    | '/_app/leagues/$leagueId/roster'
     | '/_app/leagues/$leagueId/standings'
     | '/_app/leagues/$leagueId/team/$teamId'
   fileRoutesById: FileRoutesById
@@ -216,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeaguesLeagueIdStandingsRouteImport
       parentRoute: typeof AppLeaguesLeagueIdRoute
     }
+    '/_app/leagues/$leagueId/roster': {
+      id: '/_app/leagues/$leagueId/roster'
+      path: '/roster'
+      fullPath: '/leagues/$leagueId/roster'
+      preLoaderRoute: typeof AppLeaguesLeagueIdRosterRouteImport
+      parentRoute: typeof AppLeaguesLeagueIdRoute
+    }
     '/_app/leagues/$leagueId/team/$teamId': {
       id: '/_app/leagues/$leagueId/team/$teamId'
       path: '/team/$teamId'
@@ -227,11 +247,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppLeaguesLeagueIdRouteChildren {
+  AppLeaguesLeagueIdRosterRoute: typeof AppLeaguesLeagueIdRosterRoute
   AppLeaguesLeagueIdStandingsRoute: typeof AppLeaguesLeagueIdStandingsRoute
   AppLeaguesLeagueIdTeamTeamIdRoute: typeof AppLeaguesLeagueIdTeamTeamIdRoute
 }
 
 const AppLeaguesLeagueIdRouteChildren: AppLeaguesLeagueIdRouteChildren = {
+  AppLeaguesLeagueIdRosterRoute: AppLeaguesLeagueIdRosterRoute,
   AppLeaguesLeagueIdStandingsRoute: AppLeaguesLeagueIdStandingsRoute,
   AppLeaguesLeagueIdTeamTeamIdRoute: AppLeaguesLeagueIdTeamTeamIdRoute,
 }

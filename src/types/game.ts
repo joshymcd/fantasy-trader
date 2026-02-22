@@ -21,6 +21,12 @@ export type OwnershipMode = 'UNIQUE' | 'DUPLICATES'
 export type LeagueStatus = 'DRAFT_PENDING' | 'DRAFTING' | 'ACTIVE' | 'COMPLETED'
 export type RosterMoveType = 'DRAFT' | 'ADD' | 'DROP' | 'TRADE'
 export type WaiverClaimStatus = 'PENDING' | 'WON' | 'LOST' | 'CANCELLED'
+export type TradeProposalStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'EXPIRED'
 
 export type ScoringConfig = {
   multiplier: number

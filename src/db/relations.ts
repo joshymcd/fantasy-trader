@@ -7,6 +7,7 @@ import {
   seasons,
   teamDayScores,
   teams,
+  tradeProposals,
   waiverClaims,
 } from './schema'
 
@@ -38,6 +39,8 @@ export const teamRelations = relations(teams, ({ one, many }) => ({
   rosterMoves: many(rosterMoves),
   dayScores: many(teamDayScores),
   waiverClaims: many(waiverClaims),
+  outgoingTrades: many(tradeProposals, { relationName: 'trade_from_team' }),
+  incomingTrades: many(tradeProposals, { relationName: 'trade_to_team' }),
 }))
 
 export const rosterMoveRelations = relations(rosterMoves, ({ one }) => ({
@@ -57,6 +60,23 @@ export const teamDayScoreRelations = relations(teamDayScores, ({ one }) => ({
 export const waiverClaimRelations = relations(waiverClaims, ({ one }) => ({
   team: one(teams, {
     fields: [waiverClaims.teamId],
+    references: [teams.id],
+  }),
+}))
+
+export const tradeProposalRelations = relations(tradeProposals, ({ one }) => ({
+  league: one(leagues, {
+    fields: [tradeProposals.leagueId],
+    references: [leagues.id],
+  }),
+  fromTeam: one(teams, {
+    relationName: 'trade_from_team',
+    fields: [tradeProposals.fromTeamId],
+    references: [teams.id],
+  }),
+  toTeam: one(teams, {
+    relationName: 'trade_to_team',
+    fields: [tradeProposals.toTeamId],
     references: [teams.id],
   }),
 }))

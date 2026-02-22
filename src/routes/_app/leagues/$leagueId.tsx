@@ -101,6 +101,14 @@ function LeagueOverviewPage() {
           <Badge variant="outline">{data.league.status}</Badge>
           <Button variant="outline" asChild>
             <Link
+              to="/leagues/$leagueId/roster"
+              params={{ leagueId: data.league.id }}
+            >
+              Roster
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link
               to="/leagues/$leagueId/standings"
               params={{ leagueId: data.league.id }}
             >

@@ -54,6 +54,14 @@ export const waiverClaimStatusEnum = pgEnum('waiver_claim_status', [
   'CANCELLED',
 ])
 
+export const tradeProposalStatusEnum = pgEnum('trade_proposal_status', [
+  'PENDING',
+  'ACCEPTED',
+  'REJECTED',
+  'CANCELLED',
+  'EXPIRED',
+])
+
 export const seasons = pgTable('seasons', {
   id: uuid().defaultRandom().primaryKey(),
   name: text().notNull(),
@@ -230,5 +238,38 @@ export const waiverClaims = pgTable(
       table.effectiveDate,
     ),
     index('waiver_claims_status_idx').on(table.status),
+  ],
+)
+
+export const tradeProposals = pgTable(
+  'trade_proposals',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    leagueId: uuid('league_id')
+      .notNull()
+      .references(() => leagues.id, { onDelete: 'cascade' }),
+    fromTeamId: uuid('from_team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    toTeamId: uuid('to_team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    offeredSymbols: jsonb('offered_symbols').$type<string[]>().notNull(),
+    requestedSymbols: jsonb('requested_symbols').$type<string[]>().notNull(),
+    status: tradeProposalStatusEnum('status').notNull().default('PENDING'),
+    effectiveDate: date('effective_date', { mode: 'date' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+    metadata: jsonb()
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+  },
+  (table) => [
+    index('trade_proposals_league_status_idx').on(table.leagueId, table.status),
+    index('trade_proposals_from_team_idx').on(table.fromTeamId),
+    index('trade_proposals_to_team_idx').on(table.toTeamId),
   ],
 )

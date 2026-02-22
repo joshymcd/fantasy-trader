@@ -10,6 +10,7 @@ import {
   teamDayScores,
   teams,
   todos,
+  tradeProposals,
   tradingCalendar,
   waiverClaims,
 } from '../../db/schema'
@@ -24,6 +25,7 @@ export const DEBUG_TABLES = [
   'team_day_scores',
   'trading_calendar',
   'waiver_claims',
+  'trade_proposals',
   'todos',
 ] as const
 
@@ -125,6 +127,19 @@ const TABLE_COLUMNS: Record<DebugTableName, string[]> = {
     'effective_date',
     'created_at',
   ],
+  trade_proposals: [
+    'id',
+    'league_id',
+    'from_team_id',
+    'to_team_id',
+    'offered_symbols',
+    'requested_symbols',
+    'status',
+    'effective_date',
+    'created_at',
+    'responded_at',
+    'metadata',
+  ],
   todos: ['id', 'title', 'created_at'],
 }
 
@@ -200,6 +215,12 @@ const getRowsForTable = async (tableName: DebugTableName) => {
         .from(waiverClaims)
         .orderBy(desc(waiverClaims.createdAt))
         .limit(2000)
+    case 'trade_proposals':
+      return db
+        .select()
+        .from(tradeProposals)
+        .orderBy(desc(tradeProposals.createdAt))
+        .limit(2000)
     case 'todos':
       return db.select().from(todos).orderBy(desc(todos.createdAt)).limit(2000)
   }
@@ -241,6 +262,10 @@ const getCountForTable = async (tableName: DebugTableName) => {
     }
     case 'waiver_claims': {
       const [result] = await db.select({ value: count() }).from(waiverClaims)
+      return Number(result?.value ?? 0)
+    }
+    case 'trade_proposals': {
+      const [result] = await db.select({ value: count() }).from(tradeProposals)
       return Number(result?.value ?? 0)
     }
     case 'todos': {
