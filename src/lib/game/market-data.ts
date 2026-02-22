@@ -15,6 +15,13 @@ export type PriceBar = {
   adjClose: number
 }
 
+export type PriceSyncReport = {
+  attemptedSymbols: number
+  fetchedSymbols: number
+  skippedSymbols: number
+  failedSymbols: string[]
+}
+
 type YahooHistoricalBar = {
   date?: Date
   adjClose?: number
@@ -89,8 +96,22 @@ export async function ensurePricesUpTo(
   symbols: string[],
   targetDate: Date = subDays(new Date(), 1),
 ): Promise<void> {
+  await ensurePricesUpToWithReport(symbols, targetDate)
+}
+
+export async function ensurePricesUpToWithReport(
+  symbols: string[],
+  targetDate: Date = subDays(new Date(), 1),
+): Promise<PriceSyncReport> {
   const cleanTargetDate = toUtcDate(targetDate)
   const uniqueSymbols = [...new Set(symbols)].filter(Boolean)
+
+  const report: PriceSyncReport = {
+    attemptedSymbols: uniqueSymbols.length,
+    fetchedSymbols: 0,
+    skippedSymbols: 0,
+    failedSymbols: [],
+  }
 
   for (const symbol of uniqueSymbols) {
     const lastPrice = await db
@@ -105,6 +126,7 @@ export async function ensurePricesUpTo(
       : subDays(cleanTargetDate, DEFAULT_LOOKBACK_DAYS)
 
     if (startDate > cleanTargetDate) {
+      report.skippedSymbols += 1
       continue
     }
 
@@ -112,11 +134,13 @@ export async function ensurePricesUpTo(
     try {
       bars = await fetchEodPrices(symbol, startDate, cleanTargetDate)
     } catch {
+      report.failedSymbols.push(symbol)
       await sleep(FETCH_DELAY_MS)
       continue
     }
 
     if (bars.length > 0) {
+      report.fetchedSymbols += 1
       await db
         .insert(priceDaily)
         .values(
@@ -136,15 +160,34 @@ export async function ensurePricesUpTo(
         })
     }
 
+    if (bars.length === 0) {
+      report.skippedSymbols += 1
+    }
+
     await sleep(FETCH_DELAY_MS)
   }
+
+  return report
 }
 
 export async function ensurePricesForInstrumentUniverse(
   targetDate: Date = subDays(new Date(), 1),
 ): Promise<void> {
-  const symbols = await getAllInstrumentSymbols()
-  if (symbols.length === 0) return
+  await ensurePricesForInstrumentUniverseWithReport(targetDate)
+}
 
-  await ensurePricesUpTo(symbols, targetDate)
+export async function ensurePricesForInstrumentUniverseWithReport(
+  targetDate: Date = subDays(new Date(), 1),
+): Promise<PriceSyncReport> {
+  const symbols = await getAllInstrumentSymbols()
+  if (symbols.length === 0) {
+    return {
+      attemptedSymbols: 0,
+      fetchedSymbols: 0,
+      skippedSymbols: 0,
+      failedSymbols: [],
+    }
+  }
+
+  return ensurePricesUpToWithReport(symbols, targetDate)
 }

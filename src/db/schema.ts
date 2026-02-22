@@ -9,18 +9,11 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
-  serial,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
-
-export const todos = pgTable('todos', {
-  id: serial().primaryKey(),
-  title: text().notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-})
 
 export const seasonStatusEnum = pgEnum('season_status', [
   'SETUP',

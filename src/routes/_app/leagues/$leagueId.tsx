@@ -43,11 +43,12 @@ const getLeagueOverview = createServerFn({ method: 'GET' })
       throw new Error('League not found')
     }
 
-    const latestDate = await syncPricesAndGetLatestDate()
+    const { latestDate, staleDataWarning } = await syncPricesAndGetLatestDate()
     if (!latestDate) {
       return {
         league,
         latestDate: null,
+        staleDataWarning,
         standings: [],
         highlightedTeamId: null,
         highlightedTeamHoldings: [],
@@ -70,6 +71,7 @@ const getLeagueOverview = createServerFn({ method: 'GET' })
     return {
       league,
       latestDate,
+      staleDataWarning,
       standings,
       highlightedTeamId,
       highlightedTeamHoldings,
@@ -117,6 +119,12 @@ function LeagueOverviewPage() {
           </Button>
         </div>
       </section>
+
+      {data.staleDataWarning ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {data.staleDataWarning}
+        </div>
+      ) : null}
 
       {data.latestDate === null ? (
         <Card>

@@ -9,7 +9,6 @@ import {
   seasons,
   teamDayScores,
   teams,
-  todos,
   tradeProposals,
   tradingCalendar,
   waiverClaims,
@@ -26,7 +25,6 @@ export const DEBUG_TABLES = [
   'trading_calendar',
   'waiver_claims',
   'trade_proposals',
-  'todos',
 ] as const
 
 export type DebugTableName = (typeof DEBUG_TABLES)[number]
@@ -140,7 +138,6 @@ const TABLE_COLUMNS: Record<DebugTableName, string[]> = {
     'responded_at',
     'metadata',
   ],
-  todos: ['id', 'title', 'created_at'],
 }
 
 const isDebugTableName = (value: string): value is DebugTableName =>
@@ -221,8 +218,6 @@ const getRowsForTable = async (tableName: DebugTableName) => {
         .from(tradeProposals)
         .orderBy(desc(tradeProposals.createdAt))
         .limit(2000)
-    case 'todos':
-      return db.select().from(todos).orderBy(desc(todos.createdAt)).limit(2000)
   }
 }
 
@@ -266,10 +261,6 @@ const getCountForTable = async (tableName: DebugTableName) => {
     }
     case 'trade_proposals': {
       const [result] = await db.select({ value: count() }).from(tradeProposals)
-      return Number(result?.value ?? 0)
-    }
-    case 'todos': {
-      const [result] = await db.select({ value: count() }).from(todos)
       return Number(result?.value ?? 0)
     }
   }

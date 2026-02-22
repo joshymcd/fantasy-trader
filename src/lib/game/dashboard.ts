@@ -12,7 +12,7 @@ import {
 import { calculateTeamRange } from './scoring'
 import { getPrevTradingDay } from './calendar'
 import { getHoldingsAtDate } from './holdings'
-import { ensurePricesForInstrumentUniverse } from './market-data'
+import { ensurePricesForInstrumentUniverseWithReport } from './market-data'
 
 export type LeagueStanding = {
   teamId: string
@@ -41,14 +41,20 @@ const round4 = (value: number) => Math.round(value * 10000) / 10000
 export async function syncPricesAndGetLatestDate(
   targetDate = subDays(new Date(), 1),
 ) {
-  await ensurePricesForInstrumentUniverse(targetDate)
+  const report = await ensurePricesForInstrumentUniverseWithReport(targetDate)
 
   const [row] = await db
     .select({ latestDate: max(priceDaily.date) })
     .from(priceDaily)
     .where(lte(priceDaily.date, targetDate))
 
-  return row?.latestDate ?? null
+  return {
+    latestDate: row?.latestDate ?? null,
+    staleDataWarning:
+      report.failedSymbols.length > 0
+        ? `Price fetch failed for ${report.failedSymbols.length} symbol(s): ${report.failedSymbols.slice(0, 5).join(', ')}${report.failedSymbols.length > 5 ? '...' : ''}`
+        : null,
+  }
 }
 
 export async function hydrateLeagueScores(leagueId: string, upToDate: Date) {

@@ -23,7 +23,7 @@ import {
 } from '@/lib/game/dashboard'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
-  const latestDate = await syncPricesAndGetLatestDate()
+  const { latestDate, staleDataWarning } = await syncPricesAndGetLatestDate()
 
   const leagueRows = await db
     .select({
@@ -58,6 +58,7 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
 
   return {
     latestDate,
+    staleDataWarning,
     leagueCards,
     topMovers,
   }
@@ -95,6 +96,12 @@ function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {data.staleDataWarning ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {data.staleDataWarning}
+        </div>
+      ) : null}
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">

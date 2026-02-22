@@ -43,6 +43,7 @@ import {
 import {
   acceptTrade,
   cancelTrade,
+  expirePendingTrades,
   getTradeProposalsForTeam,
   proposeTrade,
   rejectTrade,
@@ -89,8 +90,11 @@ const getRosterPageData = createServerFn({ method: 'GET' })
     const activeTeam =
       leagueTeams.find((team) => team.id === data.teamId) ?? leagueTeams[0]
 
-    const latestDate = await syncPricesAndGetLatestDate()
+    const priceSync = await syncPricesAndGetLatestDate()
+    const latestDate = priceSync.latestDate
     const effectiveDate = latestDate ?? new Date()
+
+    await expirePendingTrades(league.id)
 
     const [
       holdings,
@@ -201,6 +205,7 @@ const getRosterPageData = createServerFn({ method: 'GET' })
       pendingClaims,
       trades: activeTradeRows,
       latestDate,
+      staleDataWarning: priceSync.staleDataWarning,
     }
   })
 
@@ -403,6 +408,12 @@ function LeagueRosterPage() {
       {errorMessage ? (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm text-rose-900">
           {errorMessage}
+        </div>
+      ) : null}
+
+      {data.staleDataWarning ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {data.staleDataWarning}
         </div>
       ) : null}
 

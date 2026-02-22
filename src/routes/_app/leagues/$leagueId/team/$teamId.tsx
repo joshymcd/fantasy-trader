@@ -43,11 +43,12 @@ const getTeamPageData = createServerFn({ method: 'GET' })
       throw new Error('Team not found in this league')
     }
 
-    const latestDate = await syncPricesAndGetLatestDate()
+    const { latestDate, staleDataWarning } = await syncPricesAndGetLatestDate()
     if (!latestDate) {
       return {
         context,
         latestDate: null,
+        staleDataWarning,
         standings: [],
         teamStanding: null,
         holdings: [],
@@ -69,6 +70,7 @@ const getTeamPageData = createServerFn({ method: 'GET' })
     return {
       context,
       latestDate,
+      staleDataWarning,
       standings,
       teamStanding,
       holdings,
@@ -128,6 +130,12 @@ function TeamDetailPage() {
           </Button>
         </div>
       </div>
+
+      {data.staleDataWarning ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {data.staleDataWarning}
+        </div>
+      ) : null}
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Total value" value={totalMarketValue.toFixed(2)} />
