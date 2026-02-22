@@ -1,248 +1,199 @@
-Welcome to your new TanStack Start app!
+# Fantasy Trader
 
-# Getting Started
+Fantasy Trader is a fantasy-sports-style game where users draft and manage a team of real companies instead of athletes.
 
-To run this application:
+The core idea is simple:
+
+- You build an 8-company roster under budget and tier constraints.
+- Daily percentage moves in stock prices become fantasy points.
+- You compete in leagues through draft choices, swaps, waivers, and trades.
+
+This project implements the product direction from the original design/planning sessions and keeps scoring deterministic and rebuildable from raw data.
+
+## Product Goal
+
+Fantasy Trader is designed to feel like fantasy football mechanics, mapped to markets:
+
+- Drafting and roster constraints create strategic team composition.
+- Daily scoring rewards consistent picks, not just one big swing.
+- Mid-season management (swaps, FAAB, trades) adds tactical depth.
+- League modes support both scarcity and broad participation.
+
+## Primary Use Cases
+
+- Private friend leagues with unique company ownership and FAAB waivers.
+- Global-style competition where duplicate ownership is allowed.
+- Deterministic historical scoring that can be recalculated after rule changes.
+- Admin/ops workflow for season setup and debugging from an internal backend console.
+
+## Current Rule Model
+
+The current implementation follows these game rules:
+
+- Roster size is exactly 8 companies.
+- There are 5 tiers, and each roster must include at least 1 company from each tier.
+- Tier costs are fixed per season: Tier 1 = 20, Tier 2 = 16, Tier 3 = 12, Tier 4 = 8, Tier 5 = 4.
+- Default season budget is 100.
+- Daily points are based on close-to-close percent change using adjusted close prices.
+- First scoring day for newly added holdings uses a penalty multiplier (default 0.5).
+- No in-hours transactions: swaps/trades are blocked while market is open.
+- Roster changes become effective on next trading day.
+- Default swap limits are 1 per day and 5 per week.
+- Private unique leagues use FAAB claims for contested add/drop.
+
+## How It Works (Deterministic Data + Scoring)
+
+The app is designed to avoid cron dependency for core gameplay freshness.
+
+- On page load, server loaders call game services that ensure prices are synced up to the latest needed day.
+- Missing end-of-day prices are fetched from Yahoo Finance and upserted idempotently.
+- Holdings are reconstructed from append-only `roster_moves` based on effective dates.
+- Team-day scores are derived from holdings + prices and cached in `team_day_scores`.
+- Cached scores are invalidatable and fully recomputable from source data.
+
+Key design principle:
+
+- `price_daily` and `roster_moves` are source-of-truth facts.
+- `team_day_scores` is a derived cache.
+
+## Main User Journeys
+
+### 1) Guest Login and App Access
+
+- User lands on `/` and continues to `/login`.
+- Authentication is currently anonymous-only (Better Auth anonymous plugin).
+- Protected app routes are grouped under an auth-gated layout (`src/routes/_app/route.tsx`).
+
+### 2) Season Setup (Admin Flow)
+
+From `/backend`:
+
+- Create a season.
+- Populate UK trading calendar.
+- Populate season instruments and tiers.
+- Activate season.
+
+### 3) League and Team Setup
+
+From backend tools:
+
+- Create a league for a season.
+- Choose ownership mode: `UNIQUE` or `DUPLICATES`.
+- Create teams in that league.
+
+### 4) Draft / Initial Portfolio Selection
+
+- Teams submit 8 symbols.
+- Validation enforces roster size, per-tier minimums, and budget cap.
+- In unique leagues, already-drafted symbols are rejected.
+- League transitions to active once required portfolios are submitted.
+
+### 5) Daily Scoring and Standings
+
+- Dashboard/league pages trigger price sync and score hydration.
+- Team scores are computed per trading day and cached.
+- Leaderboards are ranked by cumulative points.
+
+### 6) Mid-Season Roster Management
+
+From `/leagues/$leagueId/roster`:
+
+- Submit swap (drop + add).
+- Unique leagues: creates waiver claims with optional FAAB bids.
+- Duplicate leagues: writes direct ADD/DROP moves effective next trading day.
+- Review pending waiver claims and swap history.
+- Propose/accept/reject/cancel private trades, with post-trade roster validation.
+
+## Route Map
+
+Public routes:
+
+- `/`
+- `/login`
+- `/api/auth/$`
+
+Protected routes:
+
+- `/dashboard`
+- `/backend`
+- `/backend/$table`
+- `/leagues/$leagueId`
+- `/leagues/$leagueId/standings`
+- `/leagues/$leagueId/team/$teamId`
+- `/leagues/$leagueId/roster`
+
+## Tech Stack
+
+- TanStack Start + TanStack Router
+- React 19
+- Drizzle ORM + PostgreSQL
+- Better Auth
+- Tailwind CSS + shadcn/ui patterns
+- Yahoo Finance (`yahoo-finance2`) for EOD market data
+
+## Project Structure
+
+- `src/lib/game/` domain services (calendar, market data, scoring, draft, swaps, trades)
+- `src/routes/_app/` authenticated app pages
+- `src/routes/_app/backend/` backend console utilities
+- `src/db/schema.ts` game schema
+- `src/db/auth-schema.ts` Better Auth schema
+- `src/middleware/` auth context + auth-required middleware
+
+## Local Setup
+
+1. Install dependencies:
 
 ```bash
 bun install
+```
+
+2. Create environment files (`.env.local` or `.env`) with at least:
+
+- `DATABASE_URL` (required for app + Drizzle)
+- `BETTER_AUTH_SECRET` (recommended for Better Auth)
+
+3. Push schema:
+
+```bash
+bun --bun run db:push
+```
+
+4. Start dev server:
+
+```bash
 bun --bun run dev
 ```
 
-# Building For Production
-
-To build this application for production:
+## Useful Commands
 
 ```bash
+bun --bun run dev
 bun --bun run build
-```
-
-## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
-```bash
-bun --bun run test
-```
-
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `bun install @tailwindcss/vite tailwindcss -D`
-
-## Linting & Formatting
-
-This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
-
-```bash
+bun --bun run preview
 bun --bun run lint
-bun --bun run format
-bun --bun run check
+bun --bun run test
+bunx --bun tsc --noEmit
+bun --bun run db:push
+bun --bun run db:studio
 ```
 
-## Setting up Better Auth
+## Testing Notes
 
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
+- Unit tests exist for core helpers and constants.
+- Domain smoke tests in `src/lib/game/game-domain.test.ts` hit the configured database and may create setup data.
+- If tests are pointed at a shared DB, expect test artifacts.
 
-   ```bash
-   bunx --bun @better-auth/cli secret
-   ```
+## Current Product Status
 
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
+Implemented phases include:
 
-### Adding a Database (Optional)
+- Core schema and game domain logic
+- Trading calendar and market data sync
+- Deterministic scoring cache workflow
+- League/team/draft flows
+- Swaps, waivers (FAAB), and private trades
+- Auth-gated app shell with anonymous login
+- Dashboard, standings, team, and roster pages
 
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from 'better-auth'
-import { Pool } from 'pg'
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-})
-```
-
-Then run migrations:
-
-```bash
-bunx --bun @better-auth/cli migrate
-```
-
-## T3Env
-
-- You can use T3Env to add type safety to your environment variables.
-- Add Environment variables to the `src/env.mjs` file.
-- Use the environment variables in your code.
-
-### Usage
-
-```ts
-import { env } from '@/env'
-
-console.log(env.VITE_APP_TITLE)
-```
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from '@tanstack/react-router'
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+The app is playable for MVP-style flows and is structured for future enhancements like richer draft orchestration, stricter trade governance, and expanded market/league time-zone policies.
